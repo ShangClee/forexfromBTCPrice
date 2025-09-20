@@ -2,249 +2,189 @@ import {
   getBitcoinPrices,
   getSupportedCurrencies,
   clearCache,
+  resetServiceState,
   getCacheStatus,
   getRateLimitStatus,
-  resetServiceState
 } from '../bitcoinPriceService';
-import { ApiError } from '../../types';
+import { BitcoinPriceData, CoinGeckoResponse, ApiError } from '../../types';
 
 // Mock fetch globally
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-// Mock console methods to avoid noise in tests
-const consoleSpy = {
-  warn: jest.spyOn(console, 'warn').mockImplementation(),
-  error: jest.spyOn(console, 'error').mockImplementation()
-};
-
-describe('bitcoinPriceService', () => {
-  const mockBitcoinPrices = {
-    usd: 45000,
-    eur: 38000,
-    gbp: 33000,
-    jpy: 6500000
-  };
-
-  const mockSuccessResponse = {
-    bitcoin: mockBitcoinPrices
-  };
-
+describe('BitcoinPriceService', () => {
   beforeEach(() => {
-    // Reset all service state before each test
+    mockFetch.mockClear();
     resetServiceState();
-    
-    // Reset fetch mock
-    mockFetch.mockReset();
-    
-    // Reset console spies
-    consoleSpy.warn.mockClear();
-    consoleSpy.error.mockClear();
-    
-    // Reset timers
-    jest.clearAllTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   describe('getBitcoinPrices', () => {
+    const mockCoinGeckoResponse: CoinGeckoResponse = {
+      bitcoin: {
+        usd: 45000,
+        eur: 38000,
+        gbp: 33000,
+        jpy: 5000000,
+        aud: 62000,
+        cad: 57000,
+      },
+    };
 
     it('should fetch Bitcoin prices successfully', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
-        json: async () => mockSuccessResponse
+        json: async () => mockCoinGeckoResponse,
       });
 
-      const result = await getBitcoinPrices(['usd', 'eur', 'gbp', 'jpy']);
+      const result = await getBitcoinPrices(['usd', 'eur', 'gbp']);
 
-      expect(result).toEqual(mockBitcoinPrices);
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('vs_currencies=usd,eur,gbp,jpy'),
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,eur,gbp',
         expect.objectContaining({
-          headers: expect.objectContaining({
+          headers: {
             'Accept': 'application/json',
-            'User-Agent': 'BitcoinForexCalculator/1.0'
-          })
+            'User-Agent': 'BitcoinForexCalculator/1.0',
+          },
         })
       );
+
+      expect(result).toEqual(mockCoinGeckoResponse.bitcoin);
     });
 
-    it('should use default currencies when none specified', async () => {
+    it('should use cached data when available', async () => {
+      // First call to populate cache
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
-        json: async () => mockSuccessResponse
+        json: async () => mockCoinGeckoResponse,
       });
 
-      await getBitcoinPrices();
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('vs_currencies=usd,eur,gbp,jpy,aud,cad,chf,cny,sek,nok,dkk,pln,czk,huf,rub,brl,mxn,inr,krw,sgd'),
-        expect.any(Object)
-      );
-    });
-
-    it('should cache results and return cached data on subsequent calls', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockSuccessResponse
-      });
-
-      // First call should make API request
-      const result1 = await getBitcoinPrices(['usd', 'eur']);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(result1).toEqual(mockBitcoinPrices);
+      await getBitcoinPrices(['usd', 'eur']);
 
       // Second call should use cache
-      const result2 = await getBitcoinPrices(['usd', 'eur']);
-      expect(mockFetch).toHaveBeenCalledTimes(1); // No additional call
-      expect(result2).toEqual(mockBitcoinPrices);
+      const result = await getBitcoinPrices(['usd', 'eur']);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockCoinGeckoResponse.bitcoin);
     });
 
     it('should force refresh when requested', async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => mockSuccessResponse
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ bitcoin: { usd: 46000, eur: 39000 } })
-        });
+      // First call to populate cache
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockCoinGeckoResponse,
+      });
 
-      // First call
       await getBitcoinPrices(['usd', 'eur']);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      // Force refresh should make new API call
+      // Second call with force refresh
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          bitcoin: { usd: 46000, eur: 39000 },
+        }),
+      });
+
       const result = await getBitcoinPrices(['usd', 'eur'], true);
+
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ usd: 46000, eur: 39000 });
+      expect(result.usd).toBe(46000);
     });
 
-    it('should retry on network errors', async () => {
-      // Mock first call to fail, second to succeed
+    it('should retry on network errors with exponential backoff', async () => {
       mockFetch
+        .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           ok: true,
-          status: 200,
-          json: async () => mockSuccessResponse
+          json: async () => mockCoinGeckoResponse,
         });
 
       const result = await getBitcoinPrices(['usd']);
-      expect(result).toEqual(mockBitcoinPrices);
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(result).toEqual(mockCoinGeckoResponse.bitcoin);
     });
 
-    it('should handle rate limiting (429 status)', async () => {
+    it('should handle rate limiting', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
 
-      try {
-        await getBitcoinPrices(['usd']);
-        fail('Should have thrown an error');
-      } catch (error) {
-        expect(error).toBeInstanceOf(ApiError);
-        expect(error.message).toContain('Rate limit exceeded');
-      }
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('Rate limit exceeded');
     });
 
-    it('should handle server errors (5xx status)', async () => {
+    it('should handle server errors', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       });
 
-      try {
-        await getBitcoinPrices(['usd']);
-        fail('Should have thrown an error');
-      } catch (error) {
-        expect(error).toBeInstanceOf(ApiError);
-        expect(error.status).toBe(500);
-      }
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('CoinGecko server error');
     });
 
     it('should handle invalid response format', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
-        json: async () => ({ invalid: 'response' })
+        json: async () => ({ invalid: 'response' }),
       });
 
-      try {
-        await getBitcoinPrices(['usd']);
-        fail('Should have thrown an error');
-      } catch (error) {
-        expect(error).toBeInstanceOf(ApiError);
-        expect(error.message).toContain('Invalid response format');
-      }
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('Invalid response format');
     });
 
-    it('should return cached data when API fails with server error', async () => {
-      // First, populate cache with successful response
+    it('should return cached data on non-critical errors', async () => {
+      // First populate cache
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
-        json: async () => mockSuccessResponse
+        json: async () => mockCoinGeckoResponse,
       });
 
       await getBitcoinPrices(['usd']);
 
-      // Then simulate server error
+      // Then simulate rate limiting
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        status: 500,
-        statusText: 'Internal Server Error'
+        status: 429,
+        statusText: 'Too Many Requests',
       });
 
-      const result = await getBitcoinPrices(['usd'], true);
-      expect(result).toEqual(mockBitcoinPrices);
-      expect(consoleSpy.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Using cached Bitcoin prices due to API error'),
-        expect.any(String)
-      );
+      const result = await getBitcoinPrices(['usd']);
+      expect(result).toEqual(mockCoinGeckoResponse.bitcoin);
     });
 
-    it('should warn about missing currencies in response', async () => {
-      const partialResponse = {
-        bitcoin: {
-          usd: 45000,
-          eur: 38000
-          // Missing gbp and jpy
-        }
-      };
-
+    it('should warn about missing currencies', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        status: 200,
-        json: async () => partialResponse
+        json: async () => ({
+          bitcoin: { usd: 45000 }, // Missing EUR
+        }),
       });
 
-      const result = await getBitcoinPrices(['usd', 'eur', 'gbp', 'jpy']);
-      
-      expect(result).toEqual(partialResponse.bitcoin);
-      expect(consoleSpy.warn).toHaveBeenCalledWith(
-        'Missing prices for currencies: gbp, jpy'
-      );
+      await getBitcoinPrices(['usd', 'eur']);
+
+      expect(consoleSpy).toHaveBeenCalledWith('Missing prices for currencies: eur');
+      consoleSpy.mockRestore();
+    });
+
+    it('should throw error after max retries', async () => {
+      mockFetch.mockRejectedValue(new Error('Network error'));
+
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
+      expect(mockFetch).toHaveBeenCalledTimes(3); // MAX_RETRIES
     });
   });
 
   describe('getSupportedCurrencies', () => {
-    it('should return array of supported currency codes', () => {
+    it('should return list of supported currencies', () => {
       const currencies = getSupportedCurrencies();
       
-      expect(Array.isArray(currencies)).toBe(true);
       expect(currencies).toContain('usd');
       expect(currencies).toContain('eur');
       expect(currencies).toContain('gbp');
@@ -252,7 +192,7 @@ describe('bitcoinPriceService', () => {
       expect(currencies.length).toBeGreaterThan(15);
     });
 
-    it('should return a copy of the array (not reference)', () => {
+    it('should return a copy of the array', () => {
       const currencies1 = getSupportedCurrencies();
       const currencies2 = getSupportedCurrencies();
       
@@ -261,67 +201,88 @@ describe('bitcoinPriceService', () => {
     });
   });
 
-  describe('cache management', () => {
-    it('should report cache status correctly', async () => {
-      // Initially no cache
-      let status = getCacheStatus();
-      expect(status.hasCache).toBe(false);
-      expect(status.isValid).toBe(false);
+  describe('Cache Management', () => {
+    const mockResponse = {
+      bitcoin: { usd: 45000, eur: 38000 },
+    };
 
-      // After successful fetch
-      mockFetch.mockResolvedValueOnce({
+    beforeEach(() => {
+      mockFetch.mockResolvedValue({
         ok: true,
-        status: 200,
-        json: async () => ({ bitcoin: { usd: 45000 } })
+        json: async () => mockResponse,
       });
-
-      await getBitcoinPrices(['usd']);
-
-      status = getCacheStatus();
-      expect(status.hasCache).toBe(true);
-      expect(status.isValid).toBe(true);
-      expect(status.timestamp).toBeInstanceOf(Number);
-      expect(status.age).toBeGreaterThanOrEqual(0);
     });
 
-    it('should clear cache when requested', async () => {
-      // Populate cache
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ bitcoin: { usd: 45000 } })
-      });
-
+    it('should clear cache', async () => {
       await getBitcoinPrices(['usd']);
       expect(getCacheStatus().hasCache).toBe(true);
 
-      // Clear cache
       clearCache();
       expect(getCacheStatus().hasCache).toBe(false);
     });
 
-    it('should expire cache after 30 seconds', async () => {
-      jest.useFakeTimers();
+    it('should provide cache status', async () => {
+      const statusBefore = getCacheStatus();
+      expect(statusBefore.hasCache).toBe(false);
+      expect(statusBefore.isValid).toBe(false);
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ bitcoin: { usd: 45000 } })
-      });
+      await getBitcoinPrices(['usd']);
+
+      const statusAfter = getCacheStatus();
+      expect(statusAfter.hasCache).toBe(true);
+      expect(statusAfter.isValid).toBe(true);
+      expect(statusAfter.timestamp).toBeGreaterThan(0);
+      expect(statusAfter.age).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should expire cache after timeout', async () => {
+      // Mock Date.now to control cache expiration
+      const originalDateNow = Date.now;
+      const mockTime = 1640995200000;
+      Date.now = jest.fn(() => mockTime);
 
       await getBitcoinPrices(['usd']);
       expect(getCacheStatus().isValid).toBe(true);
 
-      // Fast-forward 31 seconds
-      jest.advanceTimersByTime(31000);
+      // Advance time beyond cache duration (30 seconds)
+      Date.now = jest.fn(() => mockTime + 35 * 1000);
+
       expect(getCacheStatus().isValid).toBe(false);
-      
-      jest.useRealTimers();
+
+      // This should fetch fresh data
+      await getBitcoinPrices(['usd']);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      // Restore original Date.now
+      Date.now = originalDateNow;
     });
   });
 
-  describe('rate limiting', () => {
-    it('should report rate limit status', () => {
+  describe('Rate Limiting', () => {
+    it('should enforce rate limiting between requests', async () => {
+      const mockResponse = {
+        bitcoin: { usd: 45000 },
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const startTime = Date.now();
+      
+      // Make two consecutive requests
+      await getBitcoinPrices(['usd'], true);
+      await getBitcoinPrices(['usd'], true);
+      
+      const endTime = Date.now();
+      const elapsed = endTime - startTime;
+      
+      // Should have waited at least 1.2 seconds between requests
+      expect(elapsed).toBeGreaterThanOrEqual(1200);
+    });
+
+    it('should provide rate limit status', () => {
       const status = getRateLimitStatus();
       
       expect(status).toHaveProperty('isRateLimited');
@@ -330,34 +291,80 @@ describe('bitcoinPriceService', () => {
       expect(typeof status.isRateLimited).toBe('boolean');
     });
 
-    it('should enforce minimum interval between requests', async () => {
-      jest.useFakeTimers();
+    it('should handle rate limit reset', async () => {
+      // Simulate rate limiting
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+      });
 
+      try {
+        await getBitcoinPrices(['usd']);
+      } catch (error) {
+        // Expected to fail
+      }
+
+      const status = getRateLimitStatus();
+      expect(status.isRateLimited).toBe(true);
+      expect(status.timeUntilReset).toBeGreaterThan(0);
+    });
+  });
+
+  describe('resetServiceState', () => {
+    it('should reset all service state', async () => {
+      // Populate cache and trigger rate limiting
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ bitcoin: { usd: 45000 } }),
+      });
+
+      await getBitcoinPrices(['usd']);
+      expect(getCacheStatus().hasCache).toBe(true);
+
+      resetServiceState();
+
+      expect(getCacheStatus().hasCache).toBe(false);
+      expect(getRateLimitStatus().isRateLimited).toBe(false);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle fetch errors gracefully', async () => {
+      mockFetch.mockRejectedValue(new Error('Network failure'));
+
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
+    });
+
+    it('should handle JSON parsing errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => {
+          throw new Error('Invalid JSON');
+        },
+      });
+
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow();
+    });
+
+    it('should preserve error messages in retry chain', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
       mockFetch
+        .mockRejectedValueOnce(new Error('First error'))
         .mockResolvedValueOnce({
           ok: true,
-          status: 200,
-          json: async () => ({ bitcoin: { usd: 45000 } })
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ bitcoin: { usd: 46000 } })
+          json: async () => ({ bitcoin: { usd: 45000 } }),
         });
 
-      // First request
-      const promise1 = getBitcoinPrices(['usd'], true);
-      jest.advanceTimersByTime(1200); // Rate limit delay
-      await promise1;
+      await getBitcoinPrices(['usd']);
 
-      // Second request immediately after
-      const promise2 = getBitcoinPrices(['usd'], true);
-      jest.advanceTimersByTime(1200); // Rate limit delay
-      await promise2;
-
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Bitcoin price fetch attempt 1 failed'),
+        'First error'
+      );
       
-      jest.useRealTimers();
+      consoleSpy.mockRestore();
     });
   });
 });

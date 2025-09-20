@@ -88,7 +88,7 @@ const makeApiRequest = async (url: string): Promise<CoinGeckoResponse> => {
     }
   });
 
-  if (!response.ok) {
+  if (!response || !response.ok) {
     if (response.status === 429) {
       // Rate limited
       isRateLimited = true;
@@ -179,7 +179,7 @@ const fetchBitcoinPricesWithRetry = async (
 
     // Wait before retrying (exponential backoff)
     const delay = getRetryDelay(attempt);
-    console.warn(`Bitcoin price fetch attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error.message);
+    console.warn(`Bitcoin price fetch attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error instanceof Error ? error.message : String(error));
     await sleep(delay);
 
     // Retry

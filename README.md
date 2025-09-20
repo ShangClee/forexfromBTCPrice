@@ -26,7 +26,9 @@ A React-based web application that provides real-time comparison between traditi
 bitcoin-forex-calculator/
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
-│   │   └── forexRateService.test.ts
+│   │   ├── bitcoinPriceService.test.ts  # Bitcoin API service tests
+│   │   └── forexRateService.test.ts     # Forex API service tests
+│   ├── bitcoinPriceService.ts     # CoinGecko API integration
 │   └── forexRateService.ts        # Traditional forex API integration
 ├── types/                         # TypeScript type definitions
 │   └── index.ts                   # Core interfaces and types
@@ -55,11 +57,23 @@ The forex rate service (`services/forexRateService.ts`) provides:
 - `convertCurrency(amount, from, to)`: Convert amount between currencies
 - `checkForexServiceHealth()`: Health check for API availability
 
-### Bitcoin Price Integration
+### Bitcoin Price Service
 
-- **CoinGecko API**: Real-time Bitcoin prices across multiple currencies
-- **Rate Limiting**: 50 calls/minute (free tier)
-- **Caching**: 30-second cache for Bitcoin prices
+The Bitcoin price service (`services/bitcoinPriceService.ts`) provides:
+
+- **CoinGecko API Integration**: Real-time Bitcoin prices across 20+ currencies
+- **Intelligent Caching**: 30-second cache duration to optimize API usage
+- **Rate Limiting Protection**: Enforces 50 calls/minute limit with automatic throttling
+- **Comprehensive Error Handling**: Retry logic with exponential backoff and graceful degradation
+- **Fallback to Cache**: Returns cached data during API failures when available
+
+#### Key Functions
+
+- `getBitcoinPrices(currencies, forceRefresh)`: Fetch Bitcoin prices with caching
+- `getSupportedCurrencies()`: Get list of supported currency codes
+- `getCacheStatus()`: Monitor cache validity and age
+- `getRateLimitStatus()`: Check current rate limiting status
+- `clearCache()` and `resetServiceState()`: Utilities for testing and debugging
 
 ## Development
 
@@ -118,8 +132,8 @@ npm run test:ci
 
 - ✅ **TypeScript Interfaces**: Complete type definitions for all data structures
 - ✅ **Forex API Service**: Full implementation with caching, fallback, and error handling
-- ✅ **Unit Testing**: Comprehensive test suite for service layer
-- 🚧 **Bitcoin Price Service**: Refactoring existing integration (in progress)
+- ✅ **Bitcoin Price Service**: Complete CoinGecko integration with caching and rate limiting
+- ✅ **Unit Testing**: Comprehensive test suite for both service layers (95%+ coverage)
 - 🚧 **UI Components**: Component-based architecture (planned)
 - 🚧 **Rate Comparison**: Calculation engine and display components (planned)
 

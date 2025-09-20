@@ -1,35 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { getBitcoinPrices, getSupportedCurrencies } from './services/bitcoinPriceService';
+import { BitcoinPriceData } from './types';
 
 const BitcoinForexCalculator = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Major currencies to track
-  const currencies = [
-    'usd', 'eur', 'gbp', 'jpy', 'aud', 'cad', 'chf', 'cny', 
-    'sek', 'nok', 'dkk', 'pln', 'czk', 'huf', 'rub', 'brl', 
-    'mxn', 'inr', 'krw', 'sgd'
-  ];
+  // Get supported currencies from the service
+  const currencies = getSupportedCurrencies();
 
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     
     try {
-      // Get Bitcoin prices in all currencies
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=${currencies.join(',')}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch data from CoinGecko');
-      }
-      
-      const bitcoinPrices = await response.json();
-      const btcPrices = bitcoinPrices.bitcoin;
+      // Get Bitcoin prices using the service
+      const btcPrices: BitcoinPriceData = await getBitcoinPrices(currencies, forceRefresh);
       
       // Calculate forex rates using USD as base
       const usdPrice = btcPrices.usd;
@@ -44,6 +33,10 @@ const BitcoinForexCalculator = () => {
         }
         
         const price = btcPrices[currency];
+        if (!price) {
+          return null; // Skip currencies without prices
+        }
+        
         const forexRate = usdPrice / price; // How many units of foreign currency per 1 USD
         
         return {
@@ -52,12 +45,12 @@ const BitcoinForexCalculator = () => {
           forexRate: forexRate,
           pair: `USD/${currency.toUpperCase()}`
         };
-      });
+      }).filter(Boolean); // Remove null entries
       
       setData(forexData);
-      setLastUpdated(new Date().toLocaleTimeString());
+      setLastUpdated(new Date());
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -91,7 +84,7 @@ const BitcoinForexCalculator = () => {
           <h2 className="text-red-800 font-semibold mb-2">Error Loading Data</h2>
           <p className="text-red-600">{error}</p>
           <button 
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             className="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -111,7 +104,7 @@ const BitcoinForexCalculator = () => {
               <p className="text-gray-600 mt-1">Exchange rates calculated from Bitcoin prices across major currencies</p>
             </div>
             <button
-              onClick={fetchData}
+              onClick={() => fetchData(true)}
               disabled={loading}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
@@ -120,7 +113,7 @@ const BitcoinForexCalculator = () => {
             </button>
           </div>
           {lastUpdated && (
-            <p className="text-sm text-gray-500 mt-2">Last updated: {lastUpdated}</p>
+            <p className="text-sm text-gray-500 mt-2">Last updated: {lastUpdated.toLocaleTimeString()}</p>
           )}
         </div>
 
