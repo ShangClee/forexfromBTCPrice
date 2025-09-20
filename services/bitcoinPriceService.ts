@@ -241,6 +241,16 @@ export const clearCache = (): void => {
 };
 
 /**
+ * Reset all service state (useful for testing)
+ */
+export const resetServiceState = (): void => {
+  cache = null;
+  lastRequestTime = 0;
+  isRateLimited = false;
+  rateLimitResetTime = 0;
+};
+
+/**
  * Get cache status
  */
 export const getCacheStatus = () => {

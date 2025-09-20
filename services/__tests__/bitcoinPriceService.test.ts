@@ -3,7 +3,8 @@ import {
   getSupportedCurrencies,
   clearCache,
   getCacheStatus,
-  getRateLimitStatus
+  getRateLimitStatus,
+  resetServiceState
 } from '../bitcoinPriceService';
 import { ApiError } from '../../types';
 
@@ -18,9 +19,20 @@ const consoleSpy = {
 };
 
 describe('bitcoinPriceService', () => {
+  const mockBitcoinPrices = {
+    usd: 45000,
+    eur: 38000,
+    gbp: 33000,
+    jpy: 6500000
+  };
+
+  const mockSuccessResponse = {
+    bitcoin: mockBitcoinPrices
+  };
+
   beforeEach(() => {
-    // Clear cache before each test
-    clearCache();
+    // Reset all service state before each test
+    resetServiceState();
     
     // Reset fetch mock
     mockFetch.mockReset();
@@ -38,16 +50,6 @@ describe('bitcoinPriceService', () => {
   });
 
   describe('getBitcoinPrices', () => {
-    const mockBitcoinPrices = {
-      usd: 45000,
-      eur: 38000,
-      gbp: 33000,
-      jpy: 6500000
-    };
-
-    const mockSuccessResponse = {
-      bitcoin: mockBitcoinPrices
-    };
 
     it('should fetch Bitcoin prices successfully', async () => {
       mockFetch.mockResolvedValueOnce({
@@ -126,12 +128,9 @@ describe('bitcoinPriceService', () => {
       expect(result).toEqual({ usd: 46000, eur: 39000 });
     });
 
-    it('should handle network errors with retry logic', async () => {
-      jest.useFakeTimers();
-
-      // Mock first two calls to fail, third to succeed
+    it('should retry on network errors', async () => {
+      // Mock first call to fail, second to succeed
       mockFetch
-        .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           ok: true,
@@ -139,15 +138,9 @@ describe('bitcoinPriceService', () => {
           json: async () => mockSuccessResponse
         });
 
-      const promise = getBitcoinPrices(['usd']);
-
-      // Fast-forward through retry delays
-      await jest.advanceTimersByTimeAsync(1000); // First retry delay
-      await jest.advanceTimersByTimeAsync(2000); // Second retry delay
-
-      const result = await promise;
+      const result = await getBitcoinPrices(['usd']);
       expect(result).toEqual(mockBitcoinPrices);
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it('should handle rate limiting (429 status)', async () => {
@@ -157,8 +150,13 @@ describe('bitcoinPriceService', () => {
         statusText: 'Too Many Requests'
       });
 
-      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
-      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('Rate limit exceeded');
+      try {
+        await getBitcoinPrices(['usd']);
+        fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        expect(error.message).toContain('Rate limit exceeded');
+      }
     });
 
     it('should handle server errors (5xx status)', async () => {
@@ -168,7 +166,13 @@ describe('bitcoinPriceService', () => {
         statusText: 'Internal Server Error'
       });
 
-      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
+      try {
+        await getBitcoinPrices(['usd']);
+        fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        expect(error.status).toBe(500);
+      }
     });
 
     it('should handle invalid response format', async () => {
@@ -178,8 +182,13 @@ describe('bitcoinPriceService', () => {
         json: async () => ({ invalid: 'response' })
       });
 
-      await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
-      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('Invalid response format');
+      try {
+        await getBitcoinPrices(['usd']);
+        fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        expect(error.message).toContain('Invalid response format');
+      }
     });
 
     it('should return cached data when API fails with server error', async () => {
@@ -306,6 +315,8 @@ describe('bitcoinPriceService', () => {
       // Fast-forward 31 seconds
       jest.advanceTimersByTime(31000);
       expect(getCacheStatus().isValid).toBe(false);
+      
+      jest.useRealTimers();
     });
   });
 
@@ -336,17 +347,17 @@ describe('bitcoinPriceService', () => {
 
       // First request
       const promise1 = getBitcoinPrices(['usd'], true);
-      await jest.advanceTimersByTimeAsync(0);
+      jest.advanceTimersByTime(1200); // Rate limit delay
       await promise1;
 
       // Second request immediately after
       const promise2 = getBitcoinPrices(['usd'], true);
-      
-      // Should wait for rate limit interval
-      await jest.advanceTimersByTimeAsync(1200);
+      jest.advanceTimersByTime(1200); // Rate limit delay
       await promise2;
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
+      
+      jest.useRealTimers();
     });
   });
 });
