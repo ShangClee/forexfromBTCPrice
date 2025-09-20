@@ -240,3 +240,34 @@ export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
  * Theme preference for UI components
  */
 export type ThemeMode = 'light' | 'dark' | 'auto';
+
+// Error Handling Types
+
+/**
+ * Custom API error class with additional context
+ */
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly code: string;
+  public readonly timestamp: Date;
+
+  constructor(message: string, status: number, code: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.timestamp = new Date();
+  }
+}
+
+/**
+ * Error codes for different API failure scenarios
+ */
+export type ApiErrorCode = 
+  | 'NETWORK_ERROR'
+  | 'TIMEOUT'
+  | 'RATE_LIMITED'
+  | 'SERVER_ERROR'
+  | 'API_ERROR'
+  | 'INVALID_RESPONSE'
+  | 'VALIDATION_ERROR';

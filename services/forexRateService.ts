@@ -124,7 +124,7 @@ const transformExchangeRateApiResponse = (
   response: ExchangeRateApiResponse
 ): ForexRateData => ({
   base: response.base_code,
-  date: response.time_last_update_utc.split('T')[0], // Extract date part
+  date: new Date(response.time_last_update_utc).toISOString().split('T')[0], // Extract date part
   rates: response.conversion_rates,
 });
 

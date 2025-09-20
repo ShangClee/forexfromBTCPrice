@@ -16,13 +16,26 @@ bitcoin-forex-calculator/
 │       └── structure.md          # This file - project organization
 ├── .vscode/                       # VS Code workspace settings
 │   └── settings.json             # Editor configuration
-└── bitcoin-forex-calculator.tsx  # Main React component
+├── services/                      # Service layer for API integrations
+│   ├── __tests__/                 # Service unit tests
+│   │   └── forexRateService.test.ts
+│   └── forexRateService.ts        # Traditional forex API integration ✅ IMPLEMENTED
+├── types/                         # TypeScript type definitions
+│   └── index.ts                   # Core interfaces and types ✅ IMPLEMENTED
+├── bitcoin-forex-calculator.tsx  # Main React component
+├── jest.config.js                 # Jest testing configuration
+├── jest.setup.js                  # Jest setup file
+├── package.json                   # Project dependencies and scripts
+└── tsconfig.json                  # TypeScript configuration
 ```
 
 ## Component Architecture
 
 ### Current Implementation
 - **Single Component**: `BitcoinForexCalculator` - monolithic React component containing all functionality
+- **Service Layer**: `forexRateService.ts` - comprehensive forex API integration with caching and fallback ✅ IMPLEMENTED
+- **Type Definitions**: Complete TypeScript interfaces for all data structures ✅ IMPLEMENTED
+- **Testing Infrastructure**: Jest configuration with unit tests for services ✅ IMPLEMENTED
 - **Inline Styling**: Tailwind CSS classes applied directly to JSX elements
 - **State Management**: Local React hooks (useState, useEffect) within main component
 
@@ -66,7 +79,10 @@ src/
 
 ### Current Pattern
 - Single component manages all state
-- Direct API calls within useEffect hooks
+- Direct API calls within useEffect hooks (Bitcoin prices)
+- Separate service layer for forex API integration ✅ NEW
+- Comprehensive error handling and retry logic ✅ NEW
+- Intelligent caching with fallback mechanisms ✅ NEW
 - Inline data processing and formatting
 
 ### Target Pattern (from design specs)
