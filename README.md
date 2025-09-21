@@ -102,9 +102,67 @@ npm run test:coverage
 npm run test:watch
 ```
 
+## Components
+
+### CurrencySelector
+
+The `CurrencySelector` component provides an intuitive interface for selecting source and target currencies:
+
+**Features:**
+- **Dropdown Interface**: Clean, accessible dropdown with currency flags, names, and symbols
+- **Search Functionality**: Real-time search filtering by currency code or name
+- **Currency Swap**: One-click button to swap source and target currencies
+- **20+ Currencies**: Support for major global currencies with proper formatting
+- **Accessibility**: Full keyboard navigation, focus management, and screen reader support
+- **Responsive Design**: Mobile-optimized with touch-friendly interactions
+
+**Usage:**
+```tsx
+<CurrencySelector
+  currencies={CURRENCY_DATA}
+  selectedSource="USD"
+  selectedTarget="EUR"
+  onSourceChange={(currency) => setSourceCurrency(currency)}
+  onTargetChange={(currency) => setTargetCurrency(currency)}
+  disabled={false}
+/>
+```
+
+### AmountInput
+
+The `AmountInput` component provides a sophisticated input field for currency amounts with comprehensive validation and formatting:
+
+**Features:**
+- **Real-time Validation**: Instant validation with user-friendly error messages
+- **Currency-specific Formatting**: Automatic number formatting with thousand separators
+- **Integer Currency Support**: Special handling for currencies like JPY and KRW that don't use decimals
+- **Input Sanitization**: Prevents invalid characters and formats input correctly
+- **Visual Currency Display**: Shows currency flag and symbol for better user experience
+- **Clear Functionality**: One-click clear button with focus management
+- **Accessibility**: Proper ARIA labels, keyboard navigation, and screen reader support
+- **Focus/Blur Behavior**: Raw editing mode when focused, formatted display when blurred
+
+**Validation Rules:**
+- Minimum amount: 0.01
+- Maximum amount: 1 billion
+- Maximum decimal places: 8 (0 for integer currencies)
+- Only numeric characters and decimal points allowed
+- Special handling for integer currencies (JPY, KRW, HUF, etc.)
+
+**Usage:**
+```tsx
+<AmountInput
+  amount="1234.56"
+  currency="USD"
+  onChange={(amount) => setAmount(amount)}
+  disabled={false}
+  error={validationError}
+/>
+```
+
 ### Testing
 
-The project includes comprehensive unit tests for all service layers with 96%+ code coverage:
+The project includes comprehensive unit tests for all service layers and components with 96%+ code coverage:
 
 ```bash
 # Run all tests
@@ -125,6 +183,7 @@ npm test services/__tests__/bitcoinPriceService.test.ts
 
 - **Forex Rate Service**: Complete test coverage including API fallback, caching, error handling, and retry logic
 - **Bitcoin Price Service**: Comprehensive tests for CoinGecko integration, rate limiting, caching, and error scenarios
+- **CurrencySelector Component**: Unit tests for dropdown functionality, search, swap, and accessibility features
 - **Mock API Responses**: Realistic test data for consistent testing across different scenarios
 - **Error Simulation**: Tests for network failures, API rate limits, invalid responses, and timeout handling
 
@@ -150,15 +209,16 @@ npm test services/__tests__/bitcoinPriceService.test.ts
 - ✅ **Bitcoin Price Service**: Complete CoinGecko integration with caching and rate limiting
 - ✅ **Unit Testing**: Comprehensive test suite for service layers (96%+ coverage)
 - ✅ **Currency Selection Component**: Full-featured CurrencySelector with search, swap, and accessibility
-- 🚧 **UI Components**: Additional components for amount input and comparison display (in progress)
+- ✅ **Amount Input Component**: Complete AmountInput with validation, formatting, and currency-specific handling
+- 🚧 **UI Components**: Additional components for comparison display and calculation breakdown (in progress)
 - 🚧 **Rate Comparison**: Calculation engine and display components (planned)
 
 ## Next Steps
 
-The foundation is now complete with robust service layers and the first UI component. The next phase continues building the user interface:
+The foundation is now complete with robust service layers and core UI components. The next phase continues building the user interface:
 
 1. ✅ **Currency Selection Component**: Complete CurrencySelector with search, swap, and accessibility features
-2. **Amount Input Component**: Build validated input component for conversion amounts
+2. ✅ **Amount Input Component**: Complete AmountInput with validation, formatting, and currency-specific handling
 3. **Rate Comparison Engine**: Implement calculation logic to compare traditional vs Bitcoin-based rates
 4. **Comparison Display Components**: Build visual comparison and arbitrage detection displays
 5. **Component Integration**: Integrate all components into the main calculator interface

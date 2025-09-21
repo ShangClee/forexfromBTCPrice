@@ -54,29 +54,43 @@ BitcoinForexCalculator (Main Container)
   - `handleCurrencyChange()`: Update selected currencies
   - `handleAmountChange()`: Update conversion amount
 
-#### 2. CurrencySelector
+#### 2. CurrencySelector ✅ IMPLEMENTED
 - **Purpose**: Dropdown selectors for source and target currencies
 - **Props**: 
-  - `currencies`: Available currency list
+  - `currencies`: Available currency list (defaults to comprehensive CURRENCY_DATA)
   - `selectedSource`: Currently selected source currency
   - `selectedTarget`: Currently selected target currency
   - `onSourceChange`: Callback for source currency change
   - `onTargetChange`: Callback for target currency change
+  - `disabled`: Optional prop to disable the component
 - **Features**:
-  - Search/filter functionality
-  - Currency flags and full names
-  - Swap button for quick reversal
+  - ✅ Search/filter functionality with real-time filtering
+  - ✅ Currency flags, full names, and symbols display
+  - ✅ Swap button for quick currency reversal
+  - ✅ Click-outside handling to close dropdowns
+  - ✅ Keyboard navigation and accessibility support
+  - ✅ Responsive design with Tailwind CSS styling
+  - ✅ Focus management and auto-focus on search input
 
-#### 3. AmountInput
-- **Purpose**: Input field for conversion amount with validation
+#### 3. AmountInput ✅ IMPLEMENTED
+- **Purpose**: Input field for conversion amount with comprehensive validation and formatting
 - **Props**:
-  - `amount`: Current amount value
-  - `currency`: Source currency for formatting
+  - `amount`: Current amount value as string
+  - `currency`: Source currency for formatting and validation rules
   - `onChange`: Callback for amount changes
+  - `disabled`: Optional prop to disable the component
+  - `error`: Optional external error message to display
 - **Features**:
-  - Real-time validation
-  - Currency-specific formatting
-  - Clear/reset functionality
+  - ✅ Real-time validation with user-friendly error messages
+  - ✅ Currency-specific formatting with thousand separators
+  - ✅ Integer currency support (JPY, KRW, HUF, etc.) with no decimal places
+  - ✅ Input sanitization preventing invalid characters
+  - ✅ Clear/reset functionality with focus management
+  - ✅ Visual currency display with flags and symbols
+  - ✅ Focus/blur behavior (raw editing mode vs formatted display)
+  - ✅ Comprehensive validation rules (min/max amounts, decimal places)
+  - ✅ Accessibility features with proper ARIA labels and keyboard navigation
+  - ✅ Responsive design with Tailwind CSS styling
 
 #### 4. ComparisonDisplay
 - **Purpose**: Side-by-side comparison of traditional vs Bitcoin rates

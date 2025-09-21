@@ -1,4 +1,5 @@
 // Jest setup file for additional configuration
+require('@testing-library/jest-dom');
 
 // Mock console methods to reduce noise in tests
 global.console = {

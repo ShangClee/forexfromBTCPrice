@@ -16,9 +16,17 @@ bitcoin-forex-calculator/
 │       └── structure.md          # This file - project organization
 ├── .vscode/                       # VS Code workspace settings
 │   └── settings.json             # Editor configuration
+├── components/                    # React UI components
+│   ├── __tests__/                 # Component unit tests
+│   │   ├── AmountInput.test.tsx   # AmountInput component tests ✅ IMPLEMENTED
+│   │   └── CurrencySelector.test.tsx # CurrencySelector component tests ✅ IMPLEMENTED
+│   ├── AmountInput.tsx            # Amount input with validation ✅ IMPLEMENTED
+│   └── CurrencySelector.tsx       # Currency selection component ✅ IMPLEMENTED
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
-│   │   └── forexRateService.test.ts
+│   │   ├── bitcoinPriceService.test.ts # Bitcoin API service tests ✅ IMPLEMENTED
+│   │   └── forexRateService.test.ts    # Forex API service tests ✅ IMPLEMENTED
+│   ├── bitcoinPriceService.ts     # CoinGecko API integration ✅ IMPLEMENTED
 │   └── forexRateService.ts        # Traditional forex API integration ✅ IMPLEMENTED
 ├── types/                         # TypeScript type definitions
 │   └── index.ts                   # Core interfaces and types ✅ IMPLEMENTED
@@ -32,32 +40,41 @@ bitcoin-forex-calculator/
 ## Component Architecture
 
 ### Current Implementation
-- **Single Component**: `BitcoinForexCalculator` - monolithic React component containing all functionality
-- **Service Layer**: `forexRateService.ts` - comprehensive forex API integration with caching and fallback ✅ IMPLEMENTED
+- **Main Component**: `BitcoinForexCalculator` - main React component containing core functionality
+- **UI Components**: Modular React components for specific functionality ✅ IMPLEMENTED
+  - `CurrencySelector` - Currency selection with search, swap, and accessibility features
+  - `AmountInput` - Amount input with validation, formatting, and currency-specific handling
+- **Service Layer**: Comprehensive API integration services ✅ IMPLEMENTED
+  - `bitcoinPriceService.ts` - CoinGecko API integration with caching and rate limiting
+  - `forexRateService.ts` - Traditional forex API integration with caching and fallback
 - **Type Definitions**: Complete TypeScript interfaces for all data structures ✅ IMPLEMENTED
-- **Testing Infrastructure**: Jest configuration with unit tests for services ✅ IMPLEMENTED
-- **Inline Styling**: Tailwind CSS classes applied directly to JSX elements
-- **State Management**: Local React hooks (useState, useEffect) within main component
+- **Testing Infrastructure**: Jest configuration with comprehensive unit tests ✅ IMPLEMENTED
+  - Component tests for UI components with React Testing Library
+  - Service tests with mock API responses and error scenarios
+- **Styling**: Tailwind CSS utility classes for responsive design
+- **State Management**: Local React hooks (useState, useEffect) with props-based data flow
 
-### Planned Component Structure (from specs)
+### Target Component Structure (from specs)
 ```
-src/
-├── components/
-│   ├── BitcoinForexCalculator.tsx    # Main container component
-│   ├── CurrencySelector.tsx          # Currency dropdown selection
-│   ├── AmountInput.tsx               # Amount input with validation
-│   ├── ComparisonDisplay.tsx         # Side-by-side rate comparison
-│   ├── CalculationBreakdown.tsx     # Step-by-step calculation display
-│   └── RateTable.tsx                # Enhanced rate overview table
-├── services/
-│   ├── bitcoinPriceService.ts        # CoinGecko API integration
-│   ├── forexRateService.ts          # Traditional forex API integration
-│   └── calculationService.ts        # Rate comparison logic
-├── types/
-│   └── index.ts                     # TypeScript interfaces and types
-└── utils/
-    ├── formatters.ts                # Currency and number formatting
-    └── validators.ts                # Input validation helpers
+components/
+├── BitcoinForexCalculator.tsx    # Main container component
+├── CurrencySelector.tsx          # Currency dropdown selection ✅ IMPLEMENTED
+├── AmountInput.tsx               # Amount input with validation ✅ IMPLEMENTED
+├── ComparisonDisplay.tsx         # Side-by-side rate comparison (planned)
+├── CalculationBreakdown.tsx     # Step-by-step calculation display (planned)
+└── RateTable.tsx                # Enhanced rate overview table (planned)
+
+services/
+├── bitcoinPriceService.ts        # CoinGecko API integration ✅ IMPLEMENTED
+├── forexRateService.ts          # Traditional forex API integration ✅ IMPLEMENTED
+└── calculationService.ts        # Rate comparison logic (planned)
+
+types/
+└── index.ts                     # TypeScript interfaces and types ✅ IMPLEMENTED
+
+utils/ (planned)
+├── formatters.ts                # Currency and number formatting
+└── validators.ts                # Input validation helpers
 ```
 
 ## Naming Conventions

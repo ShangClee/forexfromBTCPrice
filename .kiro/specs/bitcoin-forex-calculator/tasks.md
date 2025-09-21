@@ -37,12 +37,17 @@
   - 🚧 Write unit tests for CurrencySelector component (in progress)
   - _Requirements: 3.1, 3.2, 3.3, 5.2_
 
-- [ ] 5. Implement amount input component
-  - Create AmountInput component with real-time validation
-  - Add currency-specific number formatting
-  - Implement input sanitization and validation rules
-  - Add clear/reset functionality
-  - Write unit tests for AmountInput component
+- [x] 5. Implement amount input component ✅ COMPLETED
+  - ✅ Create AmountInput component with real-time validation
+  - ✅ Add currency-specific number formatting with thousand separators
+  - ✅ Implement input sanitization and validation rules (min/max amounts, decimal places)
+  - ✅ Add clear/reset functionality with focus management
+  - ✅ Support for integer currencies (JPY, KRW, HUF, etc.) with no decimal places
+  - ✅ Visual currency display with flags and symbols
+  - ✅ Focus/blur behavior for better user experience (raw editing vs formatted display)
+  - ✅ Comprehensive validation with user-friendly error messages
+  - ✅ Accessibility features with proper ARIA labels and keyboard navigation
+  - ✅ Write unit tests for AmountInput component (comprehensive test coverage)
   - _Requirements: 1.2, 5.2, 5.4_
 
 - [ ] 6. Build rate comparison calculation engine
