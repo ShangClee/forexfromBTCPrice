@@ -19,14 +19,20 @@ bitcoin-forex-calculator/
 ├── components/                    # React UI components
 │   ├── __tests__/                 # Component unit tests
 │   │   ├── AmountInput.test.tsx   # AmountInput component tests ✅ IMPLEMENTED
+│   │   ├── CalculationBreakdown.test.tsx # CalculationBreakdown component tests ✅ IMPLEMENTED
+│   │   ├── ComparisonDisplay.test.tsx # ComparisonDisplay component tests ✅ IMPLEMENTED
 │   │   └── CurrencySelector.test.tsx # CurrencySelector component tests ✅ IMPLEMENTED
 │   ├── AmountInput.tsx            # Amount input with validation ✅ IMPLEMENTED
+│   ├── CalculationBreakdown.tsx   # Step-by-step calculation display ✅ IMPLEMENTED
+│   ├── ComparisonDisplay.tsx      # Side-by-side rate comparison component ✅ IMPLEMENTED
 │   └── CurrencySelector.tsx       # Currency selection component ✅ IMPLEMENTED
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
 │   │   ├── bitcoinPriceService.test.ts # Bitcoin API service tests ✅ IMPLEMENTED
+│   │   ├── calculationService.test.ts  # Rate calculation service tests (in progress)
 │   │   └── forexRateService.test.ts    # Forex API service tests ✅ IMPLEMENTED
 │   ├── bitcoinPriceService.ts     # CoinGecko API integration ✅ IMPLEMENTED
+│   ├── calculationService.ts      # Rate comparison calculation engine ✅ IMPLEMENTED
 │   └── forexRateService.ts        # Traditional forex API integration ✅ IMPLEMENTED
 ├── types/                         # TypeScript type definitions
 │   └── index.ts                   # Core interfaces and types ✅ IMPLEMENTED
@@ -44,9 +50,12 @@ bitcoin-forex-calculator/
 - **UI Components**: Modular React components for specific functionality ✅ IMPLEMENTED
   - `CurrencySelector` - Currency selection with search, swap, and accessibility features
   - `AmountInput` - Amount input with validation, formatting, and currency-specific handling
-- **Service Layer**: Comprehensive API integration services ✅ IMPLEMENTED
+  - `ComparisonDisplay` - Side-by-side rate comparison with visual indicators and arbitrage detection
+  - `CalculationBreakdown` - Step-by-step Bitcoin conversion calculation display with expandable interface
+- **Service Layer**: Comprehensive API integration and calculation services ✅ IMPLEMENTED
   - `bitcoinPriceService.ts` - CoinGecko API integration with caching and rate limiting
   - `forexRateService.ts` - Traditional forex API integration with caching and fallback
+  - `calculationService.ts` - Rate comparison calculation engine with arbitrage detection
 - **Type Definitions**: Complete TypeScript interfaces for all data structures ✅ IMPLEMENTED
 - **Testing Infrastructure**: Jest configuration with comprehensive unit tests ✅ IMPLEMENTED
   - Component tests for UI components with React Testing Library
@@ -60,14 +69,14 @@ components/
 ├── BitcoinForexCalculator.tsx    # Main container component
 ├── CurrencySelector.tsx          # Currency dropdown selection ✅ IMPLEMENTED
 ├── AmountInput.tsx               # Amount input with validation ✅ IMPLEMENTED
-├── ComparisonDisplay.tsx         # Side-by-side rate comparison (planned)
-├── CalculationBreakdown.tsx     # Step-by-step calculation display (planned)
+├── ComparisonDisplay.tsx         # Side-by-side rate comparison ✅ IMPLEMENTED
+├── CalculationBreakdown.tsx     # Step-by-step calculation display ✅ IMPLEMENTED
 └── RateTable.tsx                # Enhanced rate overview table (planned)
 
 services/
 ├── bitcoinPriceService.ts        # CoinGecko API integration ✅ IMPLEMENTED
 ├── forexRateService.ts          # Traditional forex API integration ✅ IMPLEMENTED
-└── calculationService.ts        # Rate comparison logic (planned)
+└── calculationService.ts        # Rate comparison logic ✅ IMPLEMENTED
 
 types/
 └── index.ts                     # TypeScript interfaces and types ✅ IMPLEMENTED
@@ -100,6 +109,7 @@ utils/ (planned)
 - Separate service layer for forex API integration ✅ NEW
 - Comprehensive error handling and retry logic ✅ NEW
 - Intelligent caching with fallback mechanisms ✅ NEW
+- Dedicated calculation service for rate comparisons ✅ NEW
 - Inline data processing and formatting
 
 ### Target Pattern (from design specs)

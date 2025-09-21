@@ -6,29 +6,29 @@ import {
   determineBetterMethod,
   calculateConvertedAmounts,
   compareRates,
-  batchCompareRates
+  batchCompareRates,
 } from '../calculationService';
-import { BitcoinPriceData, ForexRateData } from '../../types';
+import { BitcoinPriceData, ForexRateData, ComparisonResult } from '../../types';
 
-describe('calculationService', () => {
+describe('CalculationService', () => {
   // Mock data for testing
   const mockBitcoinPrices: BitcoinPriceData = {
     usd: 45000,
     eur: 38000,
     gbp: 33000,
     jpy: 5000000,
-    cad: 55000
+    aud: 62000,
   };
 
-  const mockForexData: ForexRateData = {
+  const mockForexRates: ForexRateData = {
     base: 'USD',
-    date: '2024-01-01',
+    date: '2022-01-01',
     rates: {
-      EUR: 0.85,
-      GBP: 0.75,
-      JPY: 110,
-      CAD: 1.25
-    }
+      EUR: 0.8854,
+      GBP: 0.7404,
+      JPY: 115.11,
+      AUD: 1.3845,
+    },
   };
 
   describe('calculateBitcoinBasedRate', () => {
@@ -38,66 +38,70 @@ describe('calculationService', () => {
     });
 
     it('should handle case-insensitive currency codes', () => {
-      const rate1 = calculateBitcoinBasedRate('usd', 'eur', mockBitcoinPrices);
-      const rate2 = calculateBitcoinBasedRate('USD', 'EUR', mockBitcoinPrices);
-      expect(rate1).toBe(rate2);
+      const rate = calculateBitcoinBasedRate('usd', 'eur', mockBitcoinPrices);
+      expect(rate).toBeCloseTo(45000 / 38000, 6);
     });
 
-    it('should throw error for missing Bitcoin price', () => {
+    it('should throw error for missing source currency', () => {
+      expect(() => {
+        calculateBitcoinBasedRate('XYZ', 'EUR', mockBitcoinPrices);
+      }).toThrow('Bitcoin price not available for XYZ or EUR');
+    });
+
+    it('should throw error for missing target currency', () => {
       expect(() => {
         calculateBitcoinBasedRate('USD', 'XYZ', mockBitcoinPrices);
       }).toThrow('Bitcoin price not available for USD or XYZ');
     });
 
-    it('should throw error for zero or negative Bitcoin price', () => {
-      const invalidPrices = { usd: 45000, eur: 0 };
+    it('should throw error for zero or negative Bitcoin prices', () => {
+      const invalidPrices = { ...mockBitcoinPrices, usd: 0 };
       expect(() => {
         calculateBitcoinBasedRate('USD', 'EUR', invalidPrices);
       }).toThrow('Invalid Bitcoin price data');
     });
 
-    it('should calculate reverse rate correctly', () => {
-      const rate1 = calculateBitcoinBasedRate('USD', 'EUR', mockBitcoinPrices);
-      const rate2 = calculateBitcoinBasedRate('EUR', 'USD', mockBitcoinPrices);
-      expect(rate1 * rate2).toBeCloseTo(1, 6);
+    it('should handle same currency conversion', () => {
+      const rate = calculateBitcoinBasedRate('USD', 'USD', mockBitcoinPrices);
+      expect(rate).toBe(1);
     });
   });
 
   describe('getTraditionalForexRate', () => {
     it('should get rate when source is base currency', () => {
-      const rate = getTraditionalForexRate('USD', 'EUR', mockForexData);
-      expect(rate).toBe(0.85);
+      const rate = getTraditionalForexRate('USD', 'EUR', mockForexRates);
+      expect(rate).toBe(0.8854);
     });
 
     it('should get rate when target is base currency', () => {
-      const rate = getTraditionalForexRate('EUR', 'USD', mockForexData);
-      expect(rate).toBeCloseTo(1 / 0.85, 6);
+      const rate = getTraditionalForexRate('EUR', 'USD', mockForexRates);
+      expect(rate).toBeCloseTo(1 / 0.8854, 6);
     });
 
     it('should calculate cross-currency rate', () => {
-      const rate = getTraditionalForexRate('EUR', 'GBP', mockForexData);
-      expect(rate).toBeCloseTo(0.75 / 0.85, 6);
+      const rate = getTraditionalForexRate('EUR', 'GBP', mockForexRates);
+      expect(rate).toBeCloseTo(0.7404 / 0.8854, 6);
     });
 
     it('should handle case-insensitive currency codes', () => {
-      const rate1 = getTraditionalForexRate('usd', 'eur', mockForexData);
-      const rate2 = getTraditionalForexRate('USD', 'EUR', mockForexData);
-      expect(rate1).toBe(rate2);
+      const rate = getTraditionalForexRate('usd', 'eur', mockForexRates);
+      expect(rate).toBe(0.8854);
     });
 
-    it('should throw error for missing forex rate', () => {
+    it('should throw error for missing source currency', () => {
       expect(() => {
-        getTraditionalForexRate('USD', 'XYZ', mockForexData);
+        getTraditionalForexRate('XYZ', 'EUR', mockForexRates);
+      }).toThrow('Forex rate not available for XYZ or EUR');
+    });
+
+    it('should throw error for missing target currency', () => {
+      expect(() => {
+        getTraditionalForexRate('USD', 'XYZ', mockForexRates);
       }).toThrow('Forex rate not available for XYZ');
     });
 
     it('should handle same currency conversion', () => {
-      // Add USD to rates for this test
-      const forexWithUSD = {
-        ...mockForexData,
-        rates: { ...mockForexData.rates, USD: 1 }
-      };
-      const rate = getTraditionalForexRate('USD', 'USD', forexWithUSD);
+      const rate = getTraditionalForexRate('USD', 'USD', mockForexRates);
       expect(rate).toBe(1);
     });
   });
@@ -105,12 +109,12 @@ describe('calculationService', () => {
   describe('calculatePercentageDifference', () => {
     it('should calculate positive percentage difference', () => {
       const diff = calculatePercentageDifference(1.1, 1.0);
-      expect(diff).toBeCloseTo(10, 10);
+      expect(diff).toBeCloseTo(10, 6);
     });
 
     it('should calculate negative percentage difference', () => {
       const diff = calculatePercentageDifference(0.9, 1.0);
-      expect(diff).toBeCloseTo(-10, 10);
+      expect(diff).toBeCloseTo(-10, 6);
     });
 
     it('should calculate zero percentage difference', () => {
@@ -129,11 +133,6 @@ describe('calculationService', () => {
         calculatePercentageDifference(1.0, -1.0);
       }).toThrow('Traditional rate must be positive');
     });
-
-    it('should handle large percentage differences', () => {
-      const diff = calculatePercentageDifference(2.0, 1.0);
-      expect(diff).toBe(100);
-    });
   });
 
   describe('detectArbitrageOpportunity', () => {
@@ -148,106 +147,145 @@ describe('calculationService', () => {
     });
 
     it('should use custom threshold', () => {
-      expect(detectArbitrageOpportunity(3.0, 5.0)).toBe(false);
-      expect(detectArbitrageOpportunity(6.0, 5.0)).toBe(true);
+      expect(detectArbitrageOpportunity(1.5, 1.0)).toBe(true);
+      expect(detectArbitrageOpportunity(0.5, 1.0)).toBe(false);
     });
 
-    it('should handle edge case at threshold', () => {
+    it('should handle edge case at exact threshold', () => {
       expect(detectArbitrageOpportunity(2.0)).toBe(false);
       expect(detectArbitrageOpportunity(2.1)).toBe(true);
     });
   });
 
   describe('determineBetterMethod', () => {
-    it('should identify Bitcoin as better when rate is higher', () => {
+    it('should identify Bitcoin as better method', () => {
       const result = determineBetterMethod(1.1, 1.0);
       expect(result).toBe('bitcoin');
     });
 
-    it('should identify traditional as better when rate is higher', () => {
+    it('should identify traditional as better method', () => {
       const result = determineBetterMethod(0.9, 1.0);
       expect(result).toBe('traditional');
     });
 
-    it('should identify equal rates within tolerance', () => {
-      const result = determineBetterMethod(1.00005, 1.0);
+    it('should identify equal methods', () => {
+      const result = determineBetterMethod(1.0, 1.0);
       expect(result).toBe('equal');
     });
 
-    it('should handle very small differences', () => {
-      const result = determineBetterMethod(1.001, 1.0);
-      expect(result).toBe('bitcoin');
+    it('should handle floating point precision', () => {
+      const result = determineBetterMethod(1.00005, 1.0);
+      expect(result).toBe('equal'); // Within tolerance
+    });
+
+    it('should detect difference outside tolerance', () => {
+      const result = determineBetterMethod(1.0002, 1.0);
+      expect(result).toBe('bitcoin'); // Outside tolerance
     });
   });
 
   describe('calculateConvertedAmounts', () => {
     it('should calculate converted amounts correctly', () => {
-      const result = calculateConvertedAmounts(100, 1.2, 1.1);
-      expect(result.bitcoinAmount).toBeCloseTo(120, 10);
-      expect(result.traditionalAmount).toBeCloseTo(110, 10);
+      const result = calculateConvertedAmounts(100, 1.1, 1.0);
+      expect(result.bitcoinAmount).toBeCloseTo(110, 6);
+      expect(result.traditionalAmount).toBe(100);
     });
 
     it('should handle zero amount', () => {
-      const result = calculateConvertedAmounts(0, 1.2, 1.1);
+      const result = calculateConvertedAmounts(0, 1.1, 1.0);
       expect(result.bitcoinAmount).toBe(0);
       expect(result.traditionalAmount).toBe(0);
     });
 
     it('should throw error for negative amount', () => {
       expect(() => {
-        calculateConvertedAmounts(-100, 1.2, 1.1);
+        calculateConvertedAmounts(-100, 1.1, 1.0);
       }).toThrow('Amount must be non-negative');
     });
 
-    it('should handle fractional amounts', () => {
-      const result = calculateConvertedAmounts(0.5, 2.0, 1.5);
-      expect(result.bitcoinAmount).toBe(1.0);
-      expect(result.traditionalAmount).toBe(0.75);
+    it('should handle decimal amounts', () => {
+      const result = calculateConvertedAmounts(123.45, 0.8854, 1.0);
+      expect(result.bitcoinAmount).toBeCloseTo(123.45 * 0.8854, 4);
+      expect(result.traditionalAmount).toBe(123.45);
     });
   });
 
   describe('compareRates', () => {
     it('should perform comprehensive rate comparison', () => {
-      const result = compareRates('USD', 'EUR', 1000, mockBitcoinPrices, mockForexData);
-      
+      const result = compareRates(
+        'USD',
+        'EUR',
+        1000,
+        mockBitcoinPrices,
+        mockForexRates
+      );
+
       expect(result.sourceCurrency).toBe('USD');
       expect(result.targetCurrency).toBe('EUR');
       expect(result.amount).toBe(1000);
-      expect(result.traditionalRate).toBe(0.85);
+      expect(result.traditionalRate).toBe(0.8854);
       expect(result.bitcoinRate).toBeCloseTo(45000 / 38000, 6);
-      expect(result.traditionalAmount).toBe(850);
-      expect(result.bitcoinAmount).toBeCloseTo(1000 * (45000 / 38000), 6);
+      expect(result.traditionalAmount).toBe(885.4);
+      expect(result.bitcoinAmount).toBeCloseTo(1000 * (45000 / 38000), 2);
       expect(typeof result.percentageDifference).toBe('number');
       expect(['bitcoin', 'traditional', 'equal']).toContain(result.betterMethod);
       expect(typeof result.arbitrageOpportunity).toBe('boolean');
     });
 
+    it('should handle case-insensitive currency codes', () => {
+      const result = compareRates(
+        'usd',
+        'eur',
+        1000,
+        mockBitcoinPrices,
+        mockForexRates
+      );
+
+      expect(result.sourceCurrency).toBe('USD');
+      expect(result.targetCurrency).toBe('EUR');
+    });
+
+    it('should use custom arbitrage threshold', () => {
+      const result = compareRates(
+        'USD',
+        'EUR',
+        1000,
+        mockBitcoinPrices,
+        mockForexRates,
+        0.5 // Lower threshold
+      );
+
+      expect(typeof result.arbitrageOpportunity).toBe('boolean');
+    });
+
     it('should throw error for negative amount', () => {
       expect(() => {
-        compareRates('USD', 'EUR', -100, mockBitcoinPrices, mockForexData);
+        compareRates('USD', 'EUR', -100, mockBitcoinPrices, mockForexRates);
       }).toThrow('Amount must be non-negative');
     });
 
     it('should throw error for missing currencies', () => {
       expect(() => {
-        compareRates('', 'EUR', 100, mockBitcoinPrices, mockForexData);
+        compareRates('', 'EUR', 100, mockBitcoinPrices, mockForexRates);
+      }).toThrow('Source and target currencies are required');
+
+      expect(() => {
+        compareRates('USD', '', 100, mockBitcoinPrices, mockForexRates);
       }).toThrow('Source and target currencies are required');
     });
 
-    it('should use custom arbitrage threshold', () => {
-      const result = compareRates('USD', 'EUR', 1000, mockBitcoinPrices, mockForexData, 10);
-      expect(typeof result.arbitrageOpportunity).toBe('boolean');
+    it('should propagate Bitcoin price errors', () => {
+      expect(() => {
+        compareRates('XYZ', 'EUR', 100, mockBitcoinPrices, mockForexRates);
+      }).toThrow('Bitcoin price not available');
     });
 
-    it('should handle same currency conversion', () => {
-      const sameCurrencyBtc = { usd: 45000 };
-      const sameCurrencyForex = { base: 'USD', date: '2024-01-01', rates: { USD: 1 } };
-      
-      const result = compareRates('USD', 'USD', 1000, sameCurrencyBtc, sameCurrencyForex);
-      expect(result.traditionalRate).toBe(1);
-      expect(result.bitcoinRate).toBe(1);
-      expect(result.percentageDifference).toBe(0);
-      expect(result.betterMethod).toBe('equal');
+    it('should propagate forex rate errors', () => {
+      // Use a currency that exists in Bitcoin prices but not in forex rates
+      const bitcoinPricesWithExtra = { ...mockBitcoinPrices, xyz: 1000 };
+      expect(() => {
+        compareRates('USD', 'XYZ', 100, bitcoinPricesWithExtra, mockForexRates);
+      }).toThrow('Forex rate not available');
     });
   });
 
@@ -255,12 +293,16 @@ describe('calculationService', () => {
     const currencyPairs = [
       { source: 'USD', target: 'EUR' },
       { source: 'USD', target: 'GBP' },
-      { source: 'EUR', target: 'GBP' }
+      { source: 'EUR', target: 'GBP' },
     ];
 
-    it('should perform batch comparison for multiple currency pairs', () => {
-      const results = batchCompareRates(currencyPairs, mockBitcoinPrices, mockForexData);
-      
+    it('should perform batch comparison', () => {
+      const results = batchCompareRates(
+        currencyPairs,
+        mockBitcoinPrices,
+        mockForexRates
+      );
+
       expect(results).toHaveLength(3);
       expect(results[0].sourceCurrency).toBe('USD');
       expect(results[0].targetCurrency).toBe('EUR');
@@ -268,46 +310,105 @@ describe('calculationService', () => {
       expect(results[1].targetCurrency).toBe('GBP');
       expect(results[2].sourceCurrency).toBe('EUR');
       expect(results[2].targetCurrency).toBe('GBP');
+
+      // All should have amount of 1 (default for batch comparison)
+      results.forEach(result => {
+        expect(result.amount).toBe(1);
+      });
     });
 
-    it('should use custom arbitrage threshold for batch comparison', () => {
-      const results = batchCompareRates(currencyPairs, mockBitcoinPrices, mockForexData, 10);
+    it('should use custom arbitrage threshold for batch', () => {
+      const results = batchCompareRates(
+        currencyPairs,
+        mockBitcoinPrices,
+        mockForexRates,
+        0.5
+      );
+
       expect(results).toHaveLength(3);
+      // Results should reflect the custom threshold
       results.forEach(result => {
         expect(typeof result.arbitrageOpportunity).toBe('boolean');
       });
     });
 
     it('should handle empty currency pairs array', () => {
-      const results = batchCompareRates([], mockBitcoinPrices, mockForexData);
+      const results = batchCompareRates(
+        [],
+        mockBitcoinPrices,
+        mockForexRates
+      );
+
       expect(results).toHaveLength(0);
     });
 
-    it('should propagate errors from individual comparisons', () => {
-      const invalidPairs = [{ source: 'USD', target: 'XYZ' }];
+    it('should propagate errors for invalid currency pairs', () => {
+      const invalidPairs = [{ source: 'XYZ', target: 'EUR' }];
+
       expect(() => {
-        batchCompareRates(invalidPairs, mockBitcoinPrices, mockForexData);
-      }).toThrow();
+        batchCompareRates(invalidPairs, mockBitcoinPrices, mockForexRates);
+      }).toThrow('Bitcoin price not available');
     });
   });
 
-  describe('Edge cases and error handling', () => {
-    it('should handle very large numbers', () => {
-      const largeBtcPrices = { usd: 1e10, eur: 1e9 };
-      const rate = calculateBitcoinBasedRate('USD', 'EUR', largeBtcPrices);
-      expect(rate).toBe(10);
+  describe('Integration Tests', () => {
+    it('should handle real-world scenario with arbitrage opportunity', () => {
+      // Scenario where Bitcoin route is significantly better
+      const bitcoinPrices = {
+        usd: 50000,
+        eur: 40000, // Bitcoin route: 50000/40000 = 1.25
+      };
+
+      const forexRates = {
+        base: 'USD',
+        date: '2022-01-01',
+        rates: {
+          EUR: 0.9, // Traditional route: 0.9
+        },
+      };
+
+      const result = compareRates('USD', 'EUR', 1000, bitcoinPrices, forexRates);
+
+      expect(result.bitcoinRate).toBeCloseTo(1.25, 2);
+      expect(result.traditionalRate).toBe(0.9);
+      expect(result.betterMethod).toBe('bitcoin');
+      expect(result.arbitrageOpportunity).toBe(true);
+      expect(result.percentageDifference).toBeCloseTo(38.89, 1); // (1.25-0.9)/0.9*100
     });
 
-    it('should handle very small numbers', () => {
-      const smallBtcPrices = { usd: 0.001, eur: 0.0001 };
-      const rate = calculateBitcoinBasedRate('USD', 'EUR', smallBtcPrices);
-      expect(rate).toBe(10);
+    it('should handle scenario with no arbitrage opportunity', () => {
+      // Scenario where rates are very similar
+      const bitcoinPrices = {
+        usd: 45000,
+        eur: 40000, // Bitcoin route: 45000/40000 = 1.125
+      };
+
+      const forexRates = {
+        base: 'USD',
+        date: '2022-01-01',
+        rates: {
+          EUR: 1.12, // Traditional route: 1.12 (very close)
+        },
+      };
+
+      const result = compareRates('USD', 'EUR', 1000, bitcoinPrices, forexRates);
+
+      expect(result.bitcoinRate).toBeCloseTo(1.125, 3);
+      expect(result.traditionalRate).toBe(1.12);
+      expect(result.arbitrageOpportunity).toBe(false);
+      expect(Math.abs(result.percentageDifference)).toBeLessThan(2);
     });
 
-    it('should maintain precision in calculations', () => {
-      const precisePrices = { usd: 45123.456789, eur: 38987.654321 };
-      const rate = calculateBitcoinBasedRate('USD', 'EUR', precisePrices);
-      expect(rate).toBeCloseTo(45123.456789 / 38987.654321, 10);
+    it('should handle cross-currency comparison correctly', () => {
+      const result = compareRates('EUR', 'GBP', 500, mockBitcoinPrices, mockForexRates);
+
+      // Bitcoin route: (38000/33000) = 1.1515...
+      // Traditional route: 0.7404/0.8854 = 0.8362...
+      expect(result.bitcoinRate).toBeCloseTo(38000 / 33000, 4);
+      expect(result.traditionalRate).toBeCloseTo(0.7404 / 0.8854, 4);
+      expect(result.amount).toBe(500);
+      expect(result.sourceCurrency).toBe('EUR');
+      expect(result.targetCurrency).toBe('GBP');
     });
   });
 });

@@ -39,6 +39,11 @@ export function getTraditionalForexRate(
   const sourceUpper = sourceCurrency.toUpperCase();
   const targetUpper = targetCurrency.toUpperCase();
 
+  // Handle same currency conversion
+  if (sourceUpper === targetUpper) {
+    return 1;
+  }
+
   // If source is the base currency
   if (forexData.base === sourceUpper) {
     const rate = forexData.rates[targetUpper];

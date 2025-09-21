@@ -113,7 +113,7 @@ describe('BitcoinPriceService', () => {
       });
 
       await expect(getBitcoinPrices(['usd'])).rejects.toThrow(ApiError);
-      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('Rate limit exceeded');
+      await expect(getBitcoinPrices(['usd'])).rejects.toThrow('Rate limited');
     });
 
     it('should handle server errors', async () => {

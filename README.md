@@ -83,6 +83,52 @@ The Bitcoin price service (`services/bitcoinPriceService.ts`) provides:
 - `getRateLimitStatus()`: Check current rate limiting status
 - `clearCache()` and `resetServiceState()`: Utilities for testing and debugging
 
+### Calculation Service
+
+The calculation service (`services/calculationService.ts`) provides the core rate comparison logic:
+
+- **Bitcoin-based Rate Calculation**: Calculates exchange rates using Bitcoin as intermediary currency
+- **Traditional Rate Processing**: Handles cross-currency calculations through base currency
+- **Percentage Difference Analysis**: Computes differences between Bitcoin and traditional rates
+- **Arbitrage Detection**: Identifies opportunities where rate differences exceed 2% threshold
+- **Comprehensive Comparison**: Combines all calculations into detailed comparison results
+
+#### Key Functions
+
+- `calculateBitcoinBasedRate(source, target, bitcoinPrices)`: Calculate Bitcoin-derived exchange rate
+- `getTraditionalForexRate(source, target, forexData)`: Extract traditional forex rate with cross-currency support
+- `calculatePercentageDifference(bitcoinRate, traditionalRate)`: Compute percentage difference between rates
+- `detectArbitrageOpportunity(percentageDifference, threshold)`: Identify arbitrage opportunities
+- `determineBetterMethod(bitcoinRate, traditionalRate)`: Determine which method offers better rates
+- `calculateConvertedAmounts(amount, bitcoinRate, traditionalRate)`: Calculate converted amounts for both methods
+- `compareRates(source, target, amount, bitcoinPrices, forexData)`: Comprehensive rate comparison
+- `batchCompareRates(currencyPairs, bitcoinPrices, forexData)`: Batch comparison for multiple currency pairs
+
+## Usage
+
+### Calculation Service Example
+
+```typescript
+import { compareRates } from './services/calculationService';
+import { getBitcoinPrices } from './services/bitcoinPriceService';
+import { fetchForexRates } from './services/forexRateService';
+
+// Fetch data from APIs
+const bitcoinPrices = await getBitcoinPrices(['usd', 'eur']);
+const forexRates = await fetchForexRates('USD');
+
+// Compare rates for $1000 USD to EUR conversion
+const comparison = compareRates('USD', 'EUR', 1000, bitcoinPrices, forexRates);
+
+console.log(`Traditional rate: ${comparison.traditionalRate}`);
+console.log(`Bitcoin-based rate: ${comparison.bitcoinRate}`);
+console.log(`Percentage difference: ${comparison.percentageDifference.toFixed(2)}%`);
+console.log(`Better method: ${comparison.betterMethod}`);
+console.log(`Arbitrage opportunity: ${comparison.arbitrageOpportunity}`);
+console.log(`Traditional amount: ${comparison.traditionalAmount}`);
+console.log(`Bitcoin amount: ${comparison.bitcoinAmount}`);
+```
+
 ## Development
 
 ### Prerequisites
@@ -104,6 +150,9 @@ npm run test:coverage
 
 # Run tests in watch mode
 npm run test:watch
+
+# Run specific service tests
+npm test services/__tests__/calculationService.test.ts
 ```
 
 ## Components
@@ -131,6 +180,83 @@ The `CurrencySelector` component provides an intuitive interface for selecting s
   disabled={false}
 />
 ```
+
+### ComparisonDisplay ✅ IMPLEMENTED
+
+The `ComparisonDisplay` component provides a comprehensive side-by-side comparison of traditional forex rates versus Bitcoin-based exchange rates:
+
+**Features:**
+- **Side-by-side Rate Cards**: Clean comparison layout with traditional forex and Bitcoin route cards
+- **Visual Indicators**: Color-coded borders and trend icons (TrendingUp, TrendingDown, Equal) to highlight better rates
+- **Converted Amounts**: Shows actual amounts you would receive using each method
+- **Percentage Difference**: Real-time calculation and display of rate differences with color coding
+- **Arbitrage Detection**: Automatic alerts when rate differences exceed 2% threshold
+- **Currency Formatting**: Proper formatting with currency symbols and integer currency support (JPY, KRW, HUF)
+- **Amount Difference**: Shows the actual monetary impact of choosing one method over another
+- **Loading States**: Skeleton animation during data fetching
+- **Error Handling**: User-friendly error messages with retry suggestions
+- **Responsive Design**: Mobile-optimized grid layout that adapts to different screen sizes
+
+**Usage:**
+```tsx
+<ComparisonDisplay
+  traditionalRate={0.8854}
+  bitcoinRate={0.9123}
+  amount={1000}
+  sourceCurrency="USD"
+  targetCurrency="EUR"
+  loading={false}
+/>
+```
+
+**Visual Elements:**
+- Green highlighting and TrendingUp icon for the better rate method
+- Red highlighting and TrendingDown icon for the inferior rate method
+- Gray highlighting and Equal icon when rates are identical
+- Yellow arbitrage alert box when opportunities are detected
+- Percentage differences with appropriate color coding (green for positive, red for negative)
+
+### CalculationBreakdown ✅ IMPLEMENTED
+
+The `CalculationBreakdown` component provides a detailed, step-by-step explanation of how Bitcoin-based currency conversions are calculated:
+
+**Features:**
+- **Step-by-step Calculation Display**: Clear breakdown of the two-step Bitcoin conversion process
+- **Expandable/Collapsible Interface**: Toggle between summary and detailed view with smooth transitions
+- **Formula Visualization**: Mathematical formulas displayed in monospace font for clarity
+- **Visual Step Indicators**: Numbered badges and clear section separation for easy following
+- **Effective Rate Calculation**: Shows the final exchange rate derived from Bitcoin prices
+- **Bitcoin Prices Reference**: Transparent display of the Bitcoin prices used in calculations
+- **Error Handling**: Graceful handling of invalid or missing calculation data
+- **Currency Formatting**: Proper formatting with currency symbols and integer currency support
+- **Accessibility**: Full keyboard navigation, ARIA labels, and screen reader support
+- **Responsive Design**: Mobile-optimized layout that works across all screen sizes
+
+**Calculation Steps:**
+1. **Source to Bitcoin**: Shows how the source currency amount is converted to Bitcoin
+2. **Bitcoin to Target**: Displays the conversion from Bitcoin to the target currency
+3. **Effective Rate Summary**: Calculates and shows the final exchange rate
+4. **Reference Data**: Lists the Bitcoin prices used for transparency
+
+**Usage:**
+```tsx
+<CalculationBreakdown
+  sourceBtcPrice={45000}
+  targetBtcPrice={38000}
+  amount={1000}
+  sourceCurrency="USD"
+  targetCurrency="EUR"
+  expanded={false}
+  onToggle={() => setExpanded(!expanded)}
+/>
+```
+
+**Visual Elements:**
+- Blue-themed step indicators with numbered badges
+- Monospace font for mathematical formulas
+- Color-coded results (orange for Bitcoin amounts, green for final amounts)
+- Clean separation between calculation steps and reference data
+- Responsive grid layout for Bitcoin prices reference
 
 ### AmountInput
 
@@ -211,22 +337,27 @@ npm test services/__tests__/bitcoinPriceService.test.ts
 - ✅ **TypeScript Interfaces**: Complete type definitions for all data structures
 - ✅ **Forex API Service**: Full implementation with caching, fallback, and error handling
 - ✅ **Bitcoin Price Service**: Complete CoinGecko integration with caching and rate limiting
-- ✅ **Unit Testing**: Comprehensive test suite for service layers (96%+ coverage)
+- ✅ **Calculation Service**: Complete rate comparison engine with arbitrage detection and comprehensive testing
+- ✅ **Unit Testing**: Comprehensive test suite for service layers (150+ tests, 96%+ coverage)
 - ✅ **Currency Selection Component**: Full-featured CurrencySelector with search, swap, and accessibility
 - ✅ **Amount Input Component**: Complete AmountInput with validation, formatting, and currency-specific handling
-- 🚧 **UI Components**: Additional components for comparison display and calculation breakdown (in progress)
-- 🚧 **Rate Comparison**: Calculation engine and display components (planned)
+- ✅ **Comparison Display Component**: Complete ComparisonDisplay with side-by-side rate comparison, visual indicators, and arbitrage detection
+- ✅ **Calculation Breakdown Component**: Complete CalculationBreakdown with step-by-step Bitcoin conversion explanation and expandable interface
+- 🚧 **UI Components**: Additional components for rate table (next phase)
+- 🚧 **Component Integration**: Integration of all components in the main calculator interface (next phase)
 
 ## Next Steps
 
-The foundation is now complete with robust service layers and core UI components. The next phase continues building the user interface:
+The foundation is now complete with robust service layers, calculation engine, and core UI components. The next phase focuses on building the remaining user interface:
 
 1. ✅ **Currency Selection Component**: Complete CurrencySelector with search, swap, and accessibility features
 2. ✅ **Amount Input Component**: Complete AmountInput with validation, formatting, and currency-specific handling
-3. **Rate Comparison Engine**: Implement calculation logic to compare traditional vs Bitcoin-based rates
-4. **Comparison Display Components**: Build visual comparison and arbitrage detection displays
-5. **Component Integration**: Integrate all components into the main calculator interface
-6. **Mobile Optimization**: Ensure responsive design for mobile trading scenarios
+3. ✅ **Rate Comparison Engine**: Complete calculation service with Bitcoin vs traditional rate comparison logic
+4. ✅ **Comparison Display Component**: Complete ComparisonDisplay with side-by-side comparison, visual indicators, and arbitrage alerts
+5. ✅ **Calculation Breakdown Component**: Complete CalculationBreakdown with detailed step-by-step calculation explanation and expandable interface
+6. **Rate Table Component**: Build enhanced rate overview table with sorting and trend indicators
+7. **Component Integration**: Integrate all components in the main calculator interface with proper state management
+8. **Mobile Optimization**: Ensure responsive design for mobile trading scenarios
 
 ## Contributing
 
