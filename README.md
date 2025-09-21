@@ -26,13 +26,17 @@ A React-based web application that provides real-time comparison between traditi
 bitcoin-forex-calculator/
 ├── components/                    # React UI components
 │   ├── __tests__/                 # Component unit tests
+│   │   ├── AmountInput.test.tsx   # Amount input component tests
 │   │   └── CurrencySelector.test.tsx    # Currency selector tests
+│   ├── AmountInput.tsx            # Amount input with validation and formatting
 │   └── CurrencySelector.tsx       # Currency selection component
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
 │   │   ├── bitcoinPriceService.test.ts  # Bitcoin API service tests
+│   │   ├── calculationService.test.ts   # Rate calculation service tests
 │   │   └── forexRateService.test.ts     # Forex API service tests
 │   ├── bitcoinPriceService.ts     # CoinGecko API integration
+│   ├── calculationService.ts      # Rate comparison calculation engine
 │   └── forexRateService.ts        # Traditional forex API integration
 ├── types/                         # TypeScript type definitions
 │   └── index.ts                   # Core interfaces and types
