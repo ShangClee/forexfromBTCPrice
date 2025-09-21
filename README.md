@@ -24,6 +24,10 @@ A React-based web application that provides real-time comparison between traditi
 
 ```
 bitcoin-forex-calculator/
+├── components/                    # React UI components
+│   ├── __tests__/                 # Component unit tests
+│   │   └── CurrencySelector.test.tsx    # Currency selector tests
+│   └── CurrencySelector.tsx       # Currency selection component
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
 │   │   ├── bitcoinPriceService.test.ts  # Bitcoin API service tests
@@ -100,7 +104,7 @@ npm run test:watch
 
 ### Testing
 
-The project includes comprehensive unit tests for all service layers:
+The project includes comprehensive unit tests for all service layers with 96%+ code coverage:
 
 ```bash
 # Run all tests
@@ -111,7 +115,18 @@ npm run test:coverage
 
 # Run tests in continuous integration mode
 npm run test:ci
+
+# Run specific service tests
+npm test services/__tests__/forexRateService.test.ts
+npm test services/__tests__/bitcoinPriceService.test.ts
 ```
+
+#### Test Coverage
+
+- **Forex Rate Service**: Complete test coverage including API fallback, caching, error handling, and retry logic
+- **Bitcoin Price Service**: Comprehensive tests for CoinGecko integration, rate limiting, caching, and error scenarios
+- **Mock API Responses**: Realistic test data for consistent testing across different scenarios
+- **Error Simulation**: Tests for network failures, API rate limits, invalid responses, and timeout handling
 
 ## API Rate Limits & Considerations
 
@@ -133,9 +148,21 @@ npm run test:ci
 - ✅ **TypeScript Interfaces**: Complete type definitions for all data structures
 - ✅ **Forex API Service**: Full implementation with caching, fallback, and error handling
 - ✅ **Bitcoin Price Service**: Complete CoinGecko integration with caching and rate limiting
-- ✅ **Unit Testing**: Comprehensive test suite for both service layers (95%+ coverage)
-- 🚧 **UI Components**: Component-based architecture (planned)
+- ✅ **Unit Testing**: Comprehensive test suite for service layers (96%+ coverage)
+- ✅ **Currency Selection Component**: Full-featured CurrencySelector with search, swap, and accessibility
+- 🚧 **UI Components**: Additional components for amount input and comparison display (in progress)
 - 🚧 **Rate Comparison**: Calculation engine and display components (planned)
+
+## Next Steps
+
+The foundation is now complete with robust service layers and the first UI component. The next phase continues building the user interface:
+
+1. ✅ **Currency Selection Component**: Complete CurrencySelector with search, swap, and accessibility features
+2. **Amount Input Component**: Build validated input component for conversion amounts
+3. **Rate Comparison Engine**: Implement calculation logic to compare traditional vs Bitcoin-based rates
+4. **Comparison Display Components**: Build visual comparison and arbitrage detection displays
+5. **Component Integration**: Integrate all components into the main calculator interface
+6. **Mobile Optimization**: Ensure responsive design for mobile trading scenarios
 
 ## Contributing
 

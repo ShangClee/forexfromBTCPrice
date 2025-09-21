@@ -89,7 +89,7 @@ const makeApiRequest = async (url: string): Promise<CoinGeckoResponse> => {
   });
 
   if (!response || !response.ok) {
-    if (response.status === 429) {
+    if (response && response.status === 429) {
       // Rate limited
       isRateLimited = true;
       rateLimitResetTime = Date.now() + RATE_LIMIT_DELAY;
@@ -100,7 +100,7 @@ const makeApiRequest = async (url: string): Promise<CoinGeckoResponse> => {
       );
     }
     
-    if (response.status >= 500) {
+    if (response && response.status >= 500) {
       throw new ApiError(
         'CoinGecko server error. Please try again.',
         response.status,
@@ -109,8 +109,8 @@ const makeApiRequest = async (url: string): Promise<CoinGeckoResponse> => {
     }
     
     throw new ApiError(
-      `API request failed: ${response.statusText}`,
-      response.status,
+      `API request failed: ${response ? response.statusText : 'No response'}`,
+      response ? response.status : 0,
       'API_ERROR'
     );
   }

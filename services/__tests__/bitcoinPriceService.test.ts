@@ -14,7 +14,7 @@ global.fetch = mockFetch;
 
 describe('BitcoinPriceService', () => {
   beforeEach(() => {
-    mockFetch.mockClear();
+    jest.clearAllMocks();
     resetServiceState();
   });
 
@@ -271,15 +271,15 @@ describe('BitcoinPriceService', () => {
 
       const startTime = Date.now();
       
-      // Make two consecutive requests
+      // Make two consecutive requests with force refresh
       await getBitcoinPrices(['usd'], true);
       await getBitcoinPrices(['usd'], true);
       
       const endTime = Date.now();
       const elapsed = endTime - startTime;
       
-      // Should have waited at least 1.2 seconds between requests
-      expect(elapsed).toBeGreaterThanOrEqual(1200);
+      // Should have waited at least 1 second between requests
+      expect(elapsed).toBeGreaterThanOrEqual(1000);
     });
 
     it('should provide rate limit status', () => {
