@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Calculator, ArrowRight, Bitcoin } from 'lucide-react';
 import { CalculationBreakdownProps } from '../types';
+import { useStableCallback, useOptimizedCalculation } from '../utils/performance';
 
 /**
  * CalculationBreakdown component displays step-by-step breakdown of Bitcoin-based
@@ -17,14 +18,14 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(expanded);
 
-  // Handle toggle - use internal state if no external handler provided
-  const handleToggle = () => {
+  // Stable toggle handler to prevent recreation on every render
+  const handleToggle = useStableCallback(() => {
     if (onToggle) {
       onToggle();
     } else {
       setIsExpanded(!isExpanded);
     }
-  };
+  }, [onToggle, isExpanded]);
 
   // Use external expanded state if onToggle is provided, otherwise use internal state
   const currentExpanded = onToggle ? expanded : isExpanded;
@@ -42,8 +43,8 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
     }).format(value);
   }, []);
 
-  // Calculate step-by-step values
-  const calculations = React.useMemo(() => {
+  // Optimized calculation breakdown with caching
+  const calculations = useOptimizedCalculation(() => {
     if (sourceBtcPrice === undefined || sourceBtcPrice === null || sourceBtcPrice <= 0 ||
         targetBtcPrice === undefined || targetBtcPrice === null || targetBtcPrice <= 0 ||
         amount === undefined || amount === null || amount < 0) {
@@ -84,7 +85,11 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
       console.error('Error calculating breakdown:', error);
       return null;
     }
-  }, [sourceBtcPrice, targetBtcPrice, amount, sourceCurrency, targetCurrency, formatAmount]);
+  }, [sourceBtcPrice, targetBtcPrice, amount, sourceCurrency, targetCurrency, formatAmount], {
+    cacheSize: 15,
+    enableProfiling: process.env.NODE_ENV === 'development',
+    name: 'calculation-breakdown'
+  });
 
   // Error state
   if (!calculations) {
@@ -110,19 +115,19 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
       {/* Header - Always visible */}
       <button
         onClick={handleToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset touch-manipulation"
         aria-expanded={currentExpanded}
         aria-controls="calculation-breakdown-content"
       >
-        <div className="flex items-center space-x-2">
-          <Calculator className="w-5 h-5 text-blue-600" />
-          <span className="text-sm font-medium text-gray-900">
+        <div className="flex items-center space-x-2 min-w-0">
+          <Calculator className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <span className="text-sm font-medium text-gray-900 truncate">
             Bitcoin Route Calculation
           </span>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-500">
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <span className="text-xs text-gray-500 hidden sm:inline">
             {formatAmount(amount, sourceCurrency)} → {calculations.step2.resultFormatted}
           </span>
           {currentExpanded ? (
@@ -137,7 +142,7 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
       {currentExpanded && (
         <div 
           id="calculation-breakdown-content"
-          className="border-t border-gray-200 p-4 space-y-4"
+          className="border-t border-gray-200 p-4 space-y-4 sm:space-y-6"
         >
           {/* Step 1: Source to Bitcoin */}
           <div className="space-y-2">
@@ -150,11 +155,11 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
               </h4>
             </div>
             
-            <div className="ml-8 space-y-1">
-              <div className="text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded">
+            <div className="ml-6 sm:ml-8 space-y-2">
+              <div className="text-xs sm:text-sm text-gray-600 font-mono bg-gray-50 p-2 sm:p-3 rounded overflow-x-auto">
                 {calculations.step1.formula}
               </div>
-              <div className="flex items-center space-x-2 text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 text-sm space-y-1 sm:space-y-0">
                 <span className="text-gray-600">Result:</span>
                 <span className="font-semibold text-orange-600 flex items-center space-x-1">
                   <Bitcoin className="w-4 h-4" />
@@ -180,11 +185,11 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
               </h4>
             </div>
             
-            <div className="ml-8 space-y-1">
-              <div className="text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded">
+            <div className="ml-6 sm:ml-8 space-y-2">
+              <div className="text-xs sm:text-sm text-gray-600 font-mono bg-gray-50 p-2 sm:p-3 rounded overflow-x-auto">
                 {calculations.step2.formula}
               </div>
-              <div className="flex items-center space-x-2 text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 text-sm space-y-1 sm:space-y-0">
                 <span className="text-gray-600">Result:</span>
                 <span className="font-semibold text-green-600">
                   {calculations.step2.resultFormatted}
@@ -195,12 +200,12 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
 
           {/* Effective Rate Summary */}
           <div className="border-t border-gray-100 pt-4">
-            <div className="bg-blue-50 p-3 rounded-lg">
+            <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
               <h5 className="text-sm font-medium text-blue-900 mb-2">
                 {calculations.effectiveRate.description}
               </h5>
-              <div className="space-y-1">
-                <div className="text-sm text-blue-700 font-mono">
+              <div className="space-y-2">
+                <div className="text-xs sm:text-sm text-blue-700 font-mono overflow-x-auto">
                   {calculations.effectiveRate.formula} = {calculations.effectiveRate.result.toFixed(6)}
                 </div>
                 <div className="text-sm font-semibold text-blue-800">
@@ -212,11 +217,11 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
 
           {/* Bitcoin Prices Reference */}
           <div className="border-t border-gray-100 pt-4">
-            <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">
+            <h5 className="text-xs font-medium text-gray-700 mb-3 uppercase tracking-wide">
               Bitcoin Prices Used
             </h5>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded text-sm">
                 <span className="text-gray-600">
                   {sourceCurrency.toUpperCase()}/BTC
                 </span>
@@ -224,7 +229,7 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
                   {formatAmount(sourceBtcPrice, sourceCurrency)}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded text-sm">
                 <span className="text-gray-600">
                   {targetCurrency.toUpperCase()}/BTC
                 </span>
@@ -240,4 +245,19 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
   );
 };
 
-export default CalculationBreakdown;
+CalculationBreakdown.displayName = 'CalculationBreakdown';
+
+// Custom comparison function for React.memo
+const arePropsEqual = (prevProps: CalculationBreakdownProps, nextProps: CalculationBreakdownProps): boolean => {
+  return (
+    prevProps.sourceBtcPrice === nextProps.sourceBtcPrice &&
+    prevProps.targetBtcPrice === nextProps.targetBtcPrice &&
+    prevProps.amount === nextProps.amount &&
+    prevProps.sourceCurrency === nextProps.sourceCurrency &&
+    prevProps.targetCurrency === nextProps.targetCurrency &&
+    prevProps.expanded === nextProps.expanded &&
+    prevProps.onToggle === nextProps.onToggle
+  );
+};
+
+export default React.memo(CalculationBreakdown, arePropsEqual);

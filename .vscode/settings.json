@@ -1,6 +1,11 @@
 {
     "kiroAgent.configureMCP": "Disabled",
     "kiroAgent.trustedCommands": [
-        "npm *"
+        "npm *",
+        "npx *",
+        "node *",
+        "npm test -- --testPathPattern=\"errorHandling|ErrorBoundary|enhanced.*Service\" --run",
+        "npm test -- --testPathPattern=\"errorHandling|ErrorBoundary|enhanced.*Service\" --watchAll=false",
+        "npm test -- --testPathPattern=\"performance|useDebounce\" --run"
     ]
 }

@@ -21,21 +21,43 @@ bitcoin-forex-calculator/
 │   │   ├── AmountInput.test.tsx   # AmountInput component tests ✅ IMPLEMENTED
 │   │   ├── CalculationBreakdown.test.tsx # CalculationBreakdown component tests ✅ IMPLEMENTED
 │   │   ├── ComparisonDisplay.test.tsx # ComparisonDisplay component tests ✅ IMPLEMENTED
-│   │   └── CurrencySelector.test.tsx # CurrencySelector component tests ✅ IMPLEMENTED
+│   │   ├── CurrencySelector.test.tsx # CurrencySelector component tests ✅ IMPLEMENTED
+│   │   ├── ErrorBoundary.test.tsx # Error boundary component tests ✅ IMPLEMENTED
+│   │   ├── RateTable.test.tsx     # Rate table component tests ✅ IMPLEMENTED
+│   │   └── ResponsiveDesign.test.tsx # Responsive design tests ✅ IMPLEMENTED
 │   ├── AmountInput.tsx            # Amount input with validation ✅ IMPLEMENTED
 │   ├── CalculationBreakdown.tsx   # Step-by-step calculation display ✅ IMPLEMENTED
 │   ├── ComparisonDisplay.tsx      # Side-by-side rate comparison component ✅ IMPLEMENTED
-│   └── CurrencySelector.tsx       # Currency selection component ✅ IMPLEMENTED
+│   ├── CurrencySelector.tsx       # Currency selection component ✅ IMPLEMENTED
+│   ├── ErrorBoundary.tsx          # Error boundary for graceful error handling ✅ IMPLEMENTED
+│   └── RateTable.tsx              # Enhanced rate overview table ✅ IMPLEMENTED
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
-│   │   ├── bitcoinPriceService.test.ts # Bitcoin API service tests ✅ IMPLEMENTED
-│   │   ├── calculationService.test.ts  # Rate calculation service tests (in progress)
-│   │   └── forexRateService.test.ts    # Forex API service tests ✅ IMPLEMENTED
+│   │   ├── bitcoinPriceService.test.ts      # Bitcoin API service tests ✅ IMPLEMENTED
+│   │   ├── calculationService.test.ts       # Rate calculation service tests ✅ IMPLEMENTED
+│   │   ├── enhancedBitcoinPriceService.test.ts # Enhanced Bitcoin service tests ✅ IMPLEMENTED
+│   │   ├── enhancedForexRateService.test.ts    # Enhanced forex service tests ✅ IMPLEMENTED
+│   │   └── forexRateService.test.ts            # Forex API service tests ✅ IMPLEMENTED
 │   ├── bitcoinPriceService.ts     # CoinGecko API integration ✅ IMPLEMENTED
 │   ├── calculationService.ts      # Rate comparison calculation engine ✅ IMPLEMENTED
+│   ├── enhancedBitcoinPriceService.ts # Enhanced Bitcoin service with advanced features ✅ IMPLEMENTED
+│   ├── enhancedForexRateService.ts    # Enhanced forex service with advanced features ✅ IMPLEMENTED
 │   └── forexRateService.ts        # Traditional forex API integration ✅ IMPLEMENTED
+├── hooks/                         # Custom React hooks ✅ IMPLEMENTED
+│   ├── __tests__/                 # Hook unit tests
+│   │   └── useDebounce.test.ts    # Debounce hook tests ✅ IMPLEMENTED
+│   ├── useDebounce.ts             # Debounce hook for input optimization ✅ IMPLEMENTED
+│   └── useErrorHandling.ts        # Error handling hook ✅ IMPLEMENTED
+├── utils/                         # Utility functions and performance optimizations ✅ IMPLEMENTED
+│   ├── __tests__/                 # Utility unit tests
+│   │   ├── errorHandling.test.ts  # Error handling utility tests ✅ IMPLEMENTED
+│   │   └── performance.test.ts    # Performance utility tests ✅ IMPLEMENTED
+│   ├── errorHandling.ts           # Error handling utilities ✅ IMPLEMENTED
+│   └── performance.ts             # React performance optimization hooks ✅ IMPLEMENTED
 ├── types/                         # TypeScript type definitions
 │   └── index.ts                   # Core interfaces and types ✅ IMPLEMENTED
+├── __tests__/                     # Integration and performance tests ✅ IMPLEMENTED
+│   └── performance-benchmarks.test.tsx # Performance benchmark tests ✅ IMPLEMENTED
 ├── bitcoin-forex-calculator.tsx  # Main React component
 ├── jest.config.js                 # Jest testing configuration
 ├── jest.setup.js                  # Jest setup file
@@ -52,14 +74,29 @@ bitcoin-forex-calculator/
   - `AmountInput` - Amount input with validation, formatting, and currency-specific handling
   - `ComparisonDisplay` - Side-by-side rate comparison with visual indicators and arbitrage detection
   - `CalculationBreakdown` - Step-by-step Bitcoin conversion calculation display with expandable interface
+  - `RateTable` - Enhanced rate overview table with sorting and trend indicators
+  - `ErrorBoundary` - Graceful error handling with user-friendly fallback UI
 - **Service Layer**: Comprehensive API integration and calculation services ✅ IMPLEMENTED
   - `bitcoinPriceService.ts` - CoinGecko API integration with caching and rate limiting
   - `forexRateService.ts` - Traditional forex API integration with caching and fallback
   - `calculationService.ts` - Rate comparison calculation engine with arbitrage detection
+  - `enhancedBitcoinPriceService.ts` - Advanced Bitcoin service with performance optimizations
+  - `enhancedForexRateService.ts` - Advanced forex service with enhanced features
+- **Performance Utilities**: React optimization hooks with improved TypeScript support ✅ IMPLEMENTED
+  - `performance.ts` - Comprehensive performance optimization hooks including stable references, memoization, throttling, and advanced caching
+- **Custom Hooks**: Specialized React hooks for enhanced functionality ✅ IMPLEMENTED
+  - `useDebounce.ts` - Debounce hook for input optimization
+  - `useErrorHandling.ts` - Centralized error handling hook
+- **Error Handling**: Robust error handling utilities and components ✅ IMPLEMENTED
+  - `errorHandling.ts` - Centralized error processing and logging utilities
+  - `ErrorBoundary.tsx` - React error boundary for graceful error recovery
 - **Type Definitions**: Complete TypeScript interfaces for all data structures ✅ IMPLEMENTED
 - **Testing Infrastructure**: Jest configuration with comprehensive unit tests ✅ IMPLEMENTED
   - Component tests for UI components with React Testing Library
   - Service tests with mock API responses and error scenarios
+  - Performance benchmark tests for optimization validation
+  - Hook tests for custom React hooks
+  - Utility tests for error handling and performance functions
 - **Styling**: Tailwind CSS utility classes for responsive design
 - **State Management**: Local React hooks (useState, useEffect) with props-based data flow
 
@@ -81,9 +118,13 @@ services/
 types/
 └── index.ts                     # TypeScript interfaces and types ✅ IMPLEMENTED
 
-utils/ (planned)
-├── formatters.ts                # Currency and number formatting
-└── validators.ts                # Input validation helpers
+utils/                           # Utility functions and performance optimizations ✅ IMPLEMENTED
+├── errorHandling.ts             # Error handling utilities ✅ IMPLEMENTED
+└── performance.ts               # React performance optimization hooks ✅ IMPLEMENTED
+
+hooks/                           # Custom React hooks ✅ IMPLEMENTED
+├── useDebounce.ts               # Debounce hook for input optimization ✅ IMPLEMENTED
+└── useErrorHandling.ts          # Error handling hook ✅ IMPLEMENTED
 ```
 
 ## Naming Conventions

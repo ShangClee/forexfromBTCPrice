@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { AmountInputProps, CurrencyInfo } from '../types';
+import { useStableCallback } from '../utils/performance';
 
 // Currency data for formatting and symbols
 const CURRENCY_DATA: CurrencyInfo[] = [
@@ -156,7 +157,8 @@ const AmountInput: React.FC<AmountInputProps> = ({
   const [displayValue, setDisplayValue] = useState(amount);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const currencyInfo = getCurrencyInfo(currency);
+  // Memoize currency info to prevent recalculation on every render
+  const currencyInfo = useMemo(() => getCurrencyInfo(currency), [currency]);
   const error = externalError || internalError;
   
   // Update display value when amount prop changes
@@ -170,7 +172,8 @@ const AmountInput: React.FC<AmountInputProps> = ({
     setInternalError(validationError);
   }, [amount, currency]);
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Stable input change handler to prevent recreation on every render
+  const handleInputChange = useStableCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     
     // Format the input value
@@ -181,36 +184,38 @@ const AmountInput: React.FC<AmountInputProps> = ({
     
     // Call onChange with the clean numeric value
     onChange(formattedValue);
-  };
+  }, [currency, onChange]);
   
-  const handleFocus = () => {
+  // Stable event handlers to prevent recreation on every render
+  const handleFocus = useStableCallback(() => {
     setIsFocused(true);
     // Show raw numeric value when focused for easier editing
     if (displayValue) {
       const numericValue = displayValue.replace(/[^\d.]/g, '');
       setDisplayValue(numericValue);
     }
-  };
+  }, [displayValue]);
   
-  const handleBlur = () => {
+  const handleBlur = useStableCallback(() => {
     setIsFocused(false);
     // Format for display when not focused
     if (displayValue) {
       const formatted = formatDisplayValue(displayValue, currency);
       setDisplayValue(formatted);
     }
-  };
+  }, [displayValue, currency]);
   
-  const handleClear = () => {
+  const handleClear = useStableCallback(() => {
     setDisplayValue('');
     onChange('');
     setInternalError(null);
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  };
+  }, [onChange]);
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Stable key down handler to prevent recreation on every render
+  const handleKeyDown = useStableCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     // Allow: backspace, delete, tab, escape, enter
     if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
         // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
@@ -234,7 +239,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
     if (INTEGER_CURRENCIES.includes(currency) && (e.keyCode === 190 || e.keyCode === 110)) {
       e.preventDefault();
     }
-  };
+  }, [currency]);
   
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -245,8 +250,9 @@ const AmountInput: React.FC<AmountInputProps> = ({
       <div className="relative">
         {/* Currency Symbol */}
         <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-          <span className="text-lg">{currencyInfo.flag}</span>
-          <span className="text-sm font-medium text-gray-600">{currencyInfo.symbol}</span>
+          <span className="text-lg sm:text-xl">{currencyInfo.flag}</span>
+          <span className="text-sm font-medium text-gray-600 hidden sm:inline">{currencyInfo.symbol}</span>
+          <span className="text-xs font-medium text-gray-600 sm:hidden">{currencyInfo.code}</span>
         </div>
         
         {/* Input Field */}
@@ -254,6 +260,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
           id="amount-input"
           ref={inputRef}
           type="text"
+          inputMode="decimal"
           value={isFocused ? displayValue : (displayValue ? formatDisplayValue(displayValue, currency) : '')}
           onChange={handleInputChange}
           onFocus={handleFocus}
@@ -261,7 +268,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
           onKeyDown={handleKeyDown}
           disabled={disabled}
           placeholder={`Enter amount in ${currency}`}
-          className={`w-full pl-20 pr-12 py-3 border rounded-lg text-lg font-medium transition-colors ${
+          className={`w-full pl-16 sm:pl-20 pr-12 py-4 sm:py-3 border rounded-lg text-base sm:text-lg font-medium transition-colors touch-manipulation ${
             error
               ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
               : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
@@ -274,10 +281,10 @@ const AmountInput: React.FC<AmountInputProps> = ({
         {displayValue && !disabled && (
           <button
             onClick={handleClear}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 focus:text-gray-600 focus:outline-none transition-colors"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 sm:p-1 text-gray-400 hover:text-gray-600 focus:text-gray-600 focus:outline-none transition-colors touch-manipulation"
             title="Clear amount"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 sm:w-4 sm:h-4" />
           </button>
         )}
       </div>
@@ -303,4 +310,15 @@ const AmountInput: React.FC<AmountInputProps> = ({
   );
 };
 
-export default AmountInput;
+// Custom comparison function for React.memo to prevent unnecessary re-renders
+const arePropsEqual = (prevProps: AmountInputProps, nextProps: AmountInputProps): boolean => {
+  return (
+    prevProps.amount === nextProps.amount &&
+    prevProps.currency === nextProps.currency &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.error === nextProps.error &&
+    prevProps.onChange === nextProps.onChange
+  );
+};
+
+export default React.memo(AmountInput, arePropsEqual);

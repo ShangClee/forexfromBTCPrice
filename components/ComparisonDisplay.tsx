@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, Equal } from 'lucide-react';
 import { ComparisonDisplayProps } from '../types';
+import { useStableCallback, useOptimizedCalculation } from '../utils/performance';
 
 /**
  * ComparisonDisplay component shows side-by-side comparison of traditional
@@ -14,8 +15,8 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
   targetCurrency,
   loading = false
 }) => {
-  // Calculate comparison data
-  const comparison = React.useMemo(() => {
+  // Optimized comparison calculation with caching
+  const comparison = useOptimizedCalculation(() => {
     if (loading || !traditionalRate || !bitcoinRate || amount === undefined || amount === null) {
       return null;
     }
@@ -56,10 +57,14 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
       console.error('Error calculating comparison:', error);
       return null;
     }
-  }, [traditionalRate, bitcoinRate, amount, sourceCurrency, targetCurrency, loading]);
+  }, [traditionalRate, bitcoinRate, amount, sourceCurrency, targetCurrency, loading], {
+    cacheSize: 10,
+    enableProfiling: process.env.NODE_ENV === 'development',
+    name: 'comparison-calculation'
+  });
 
-  // Format currency amounts
-  const formatAmount = (value: number, currency: string): string => {
+  // Stable formatting functions to prevent recreation on every render
+  const formatAmount = useStableCallback((value: number, currency: string): string => {
     const integerCurrencies = ['JPY', 'KRW', 'HUF'];
     const decimals = integerCurrencies.includes(currency.toUpperCase()) ? 0 : 2;
     
@@ -69,16 +74,14 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
     }).format(value);
-  };
+  }, []);
 
-  // Format percentage with sign
-  const formatPercentage = (value: number): string => {
+  const formatPercentage = useStableCallback((value: number): string => {
     const sign = value > 0 ? '+' : '';
     return `${sign}${value.toFixed(2)}%`;
-  };
+  }, []);
 
-  // Get color classes based on better method
-  const getMethodColors = (method: 'traditional' | 'bitcoin' | 'equal', isBetter: boolean) => {
+  const getMethodColors = useStableCallback((method: 'traditional' | 'bitcoin' | 'equal', isBetter: boolean) => {
     if (method === 'equal') {
       return 'text-gray-600 bg-gray-50 border-gray-200';
     }
@@ -88,7 +91,7 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
     }
     
     return 'text-red-600 bg-red-50 border-red-200';
-  };
+  }, []);
 
   // Loading state
   if (loading) {
@@ -128,25 +131,25 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
   } = comparison;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
           Rate Comparison
         </h3>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 font-medium">
           {sourceCurrency.toUpperCase()} → {targetCurrency.toUpperCase()}
         </div>
       </div>
 
       {/* Comparison Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Traditional Forex */}
-        <div className={`p-4 rounded-lg border-2 transition-colors ${
+        <div className={`p-4 sm:p-5 rounded-lg border-2 transition-colors ${
           getMethodColors(betterMethod, betterMethod === 'traditional')
         }`}>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium">Traditional Forex</h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-medium text-sm sm:text-base">Traditional Forex</h4>
             {betterMethod === 'traditional' && (
               <TrendingUp className="w-5 h-5 text-green-600" />
             )}
@@ -158,24 +161,24 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
             )}
           </div>
           
-          <div className="space-y-1">
-            <div className="text-sm text-gray-600">Rate</div>
-            <div className="text-lg font-semibold">
+          <div className="space-y-2">
+            <div className="text-xs sm:text-sm text-gray-600">Rate</div>
+            <div className="text-base sm:text-lg font-semibold font-mono">
               {traditionalRate.toFixed(6)}
             </div>
-            <div className="text-sm text-gray-600">You get</div>
-            <div className="text-xl font-bold">
+            <div className="text-xs sm:text-sm text-gray-600">You get</div>
+            <div className="text-lg sm:text-xl font-bold">
               {formatAmount(traditionalAmount, targetCurrency)}
             </div>
           </div>
         </div>
 
         {/* Bitcoin-based */}
-        <div className={`p-4 rounded-lg border-2 transition-colors ${
+        <div className={`p-4 sm:p-5 rounded-lg border-2 transition-colors ${
           getMethodColors(betterMethod, betterMethod === 'bitcoin')
         }`}>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium">Bitcoin Route</h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-medium text-sm sm:text-base">Bitcoin Route</h4>
             {betterMethod === 'bitcoin' && (
               <TrendingUp className="w-5 h-5 text-green-600" />
             )}
@@ -187,13 +190,13 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
             )}
           </div>
           
-          <div className="space-y-1">
-            <div className="text-sm text-gray-600">Rate</div>
-            <div className="text-lg font-semibold">
+          <div className="space-y-2">
+            <div className="text-xs sm:text-sm text-gray-600">Rate</div>
+            <div className="text-base sm:text-lg font-semibold font-mono">
               {bitcoinRate.toFixed(6)}
             </div>
-            <div className="text-sm text-gray-600">You get</div>
-            <div className="text-xl font-bold">
+            <div className="text-xs sm:text-sm text-gray-600">You get</div>
+            <div className="text-lg sm:text-xl font-bold">
               {formatAmount(bitcoinAmount, targetCurrency)}
             </div>
           </div>
@@ -201,13 +204,13 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
       </div>
 
       {/* Difference and Arbitrage Alert */}
-      <div className="space-y-3">
+      <div className="space-y-3 sm:space-y-4">
         {/* Percentage Difference */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
           <span className="text-sm font-medium text-gray-700">
             Difference
           </span>
-          <span className={`text-sm font-semibold ${
+          <span className={`text-sm sm:text-base font-semibold ${
             percentageDifference > 0 
               ? 'text-green-600' 
               : percentageDifference < 0 
@@ -219,11 +222,11 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
         </div>
 
         {/* Better Method Indicator */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
           <span className="text-sm font-medium text-gray-700">
             Better Method
           </span>
-          <span className={`text-sm font-semibold capitalize ${
+          <span className={`text-sm sm:text-base font-semibold capitalize ${
             betterMethod === 'bitcoin' 
               ? 'text-orange-600' 
               : betterMethod === 'traditional'
@@ -238,11 +241,11 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
         {arbitrageOpportunity && (
           <div className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-            <div>
+            <div className="min-w-0 flex-1">
               <h5 className="text-sm font-semibold text-yellow-800 mb-1">
                 Arbitrage Opportunity Detected
               </h5>
-              <p className="text-sm text-yellow-700">
+              <p className="text-xs sm:text-sm text-yellow-700">
                 The rate difference exceeds 2%, indicating a potential arbitrage opportunity. 
                 The {betterMethod} route offers {formatPercentage(Math.abs(percentageDifference))} better rates.
               </p>
@@ -252,11 +255,11 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
 
         {/* Amount Difference */}
         {Math.abs(bitcoinAmount - traditionalAmount) > 0.01 && (
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
             <span className="text-sm font-medium text-gray-700">
               Amount Difference
             </span>
-            <span className={`text-sm font-semibold ${
+            <span className={`text-sm sm:text-base font-semibold ${
               bitcoinAmount > traditionalAmount 
                 ? 'text-green-600' 
                 : 'text-red-600'
@@ -271,4 +274,18 @@ export const ComparisonDisplay: React.FC<ComparisonDisplayProps> = ({
   );
 };
 
-export default ComparisonDisplay;
+ComparisonDisplay.displayName = 'ComparisonDisplay';
+
+// Custom comparison function for React.memo
+const arePropsEqual = (prevProps: ComparisonDisplayProps, nextProps: ComparisonDisplayProps): boolean => {
+  return (
+    prevProps.traditionalRate === nextProps.traditionalRate &&
+    prevProps.bitcoinRate === nextProps.bitcoinRate &&
+    prevProps.amount === nextProps.amount &&
+    prevProps.sourceCurrency === nextProps.sourceCurrency &&
+    prevProps.targetCurrency === nextProps.targetCurrency &&
+    prevProps.loading === nextProps.loading
+  );
+};
+
+export default React.memo(ComparisonDisplay, arePropsEqual);

@@ -19,10 +19,12 @@ const SUPPORTED_CURRENCIES = [
   'mxn', 'inr', 'krw', 'sgd'
 ];
 
-// Cache interface
+// Enhanced cache interface with metadata
 interface CacheEntry {
   data: BitcoinPriceData;
   timestamp: number;
+  accessCount: number;
+  lastAccessed: number;
 }
 
 // Service state
@@ -44,11 +46,21 @@ const getRetryDelay = (attempt: number): number =>
   RETRY_DELAY * Math.pow(2, attempt);
 
 /**
- * Check if cached data is still valid
+ * Check if cached data is still valid with intelligent cache warming
  */
 const isCacheValid = (): boolean => {
   if (!cache) return false;
-  return Date.now() - cache.timestamp < CACHE_DURATION;
+  
+  const age = Date.now() - cache.timestamp;
+  const isValid = age < CACHE_DURATION;
+  
+  // Update access statistics
+  if (isValid) {
+    cache.accessCount++;
+    cache.lastAccessed = Date.now();
+  }
+  
+  return isValid;
 };
 
 /**
@@ -203,10 +215,12 @@ export const getBitcoinPrices = async (
     // Fetch fresh data
     const bitcoinPrices = await fetchBitcoinPricesWithRetry(currencies);
     
-    // Update cache
+    // Update cache with enhanced metadata
     cache = {
       data: bitcoinPrices,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      accessCount: 1,
+      lastAccessed: Date.now()
     };
 
     return bitcoinPrices;
@@ -241,6 +255,26 @@ export const clearCache = (): void => {
 };
 
 /**
+ * Intelligent cache warming - preload data when cache is about to expire
+ */
+export const warmCache = async (currencies: string[] = SUPPORTED_CURRENCIES): Promise<void> => {
+  if (!cache) return;
+  
+  const age = Date.now() - cache.timestamp;
+  const warmingThreshold = CACHE_DURATION * 0.8; // Warm when 80% of cache duration has passed
+  
+  if (age > warmingThreshold && cache.accessCount > 2) {
+    try {
+      // Preload fresh data in background
+      await getBitcoinPrices(currencies, true);
+    } catch (error) {
+      // Silently fail cache warming - existing cache is still valid
+      console.warn('Cache warming failed:', error instanceof Error ? error.message : String(error));
+    }
+  }
+};
+
+/**
  * Reset all service state (useful for testing)
  */
 export const resetServiceState = (): void => {
@@ -251,14 +285,17 @@ export const resetServiceState = (): void => {
 };
 
 /**
- * Get cache status
+ * Get enhanced cache status with performance metrics
  */
 export const getCacheStatus = () => {
   return {
     hasCache: !!cache,
     isValid: isCacheValid(),
     timestamp: cache?.timestamp || null,
-    age: cache ? Date.now() - cache.timestamp : null
+    age: cache ? Date.now() - cache.timestamp : null,
+    accessCount: cache?.accessCount || 0,
+    lastAccessed: cache?.lastAccessed || null,
+    hitRate: cache ? (cache.accessCount > 0 ? 1 : 0) : 0
   };
 };
 

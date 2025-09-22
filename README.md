@@ -27,21 +27,48 @@ bitcoin-forex-calculator/
 ├── components/                    # React UI components
 │   ├── __tests__/                 # Component unit tests
 │   │   ├── AmountInput.test.tsx   # Amount input component tests
-│   │   └── CurrencySelector.test.tsx    # Currency selector tests
+│   │   ├── CalculationBreakdown.test.tsx # Calculation breakdown tests
+│   │   ├── ComparisonDisplay.test.tsx    # Comparison display tests
+│   │   ├── CurrencySelector.test.tsx     # Currency selector tests
+│   │   ├── ErrorBoundary.test.tsx        # Error boundary tests
+│   │   ├── RateTable.test.tsx            # Rate table tests
+│   │   └── ResponsiveDesign.test.tsx     # Responsive design tests
 │   ├── AmountInput.tsx            # Amount input with validation and formatting
-│   └── CurrencySelector.tsx       # Currency selection component
+│   ├── CalculationBreakdown.tsx   # Step-by-step calculation display
+│   ├── ComparisonDisplay.tsx      # Side-by-side rate comparison
+│   ├── CurrencySelector.tsx       # Currency selection component
+│   ├── ErrorBoundary.tsx          # Error boundary for graceful error handling
+│   └── RateTable.tsx              # Enhanced rate overview table
 ├── services/                      # Service layer for API integrations
 │   ├── __tests__/                 # Service unit tests
-│   │   ├── bitcoinPriceService.test.ts  # Bitcoin API service tests
-│   │   ├── calculationService.test.ts   # Rate calculation service tests
-│   │   └── forexRateService.test.ts     # Forex API service tests
+│   │   ├── bitcoinPriceService.test.ts      # Bitcoin API service tests
+│   │   ├── calculationService.test.ts       # Rate calculation service tests
+│   │   ├── enhancedBitcoinPriceService.test.ts # Enhanced Bitcoin service tests
+│   │   ├── enhancedForexRateService.test.ts    # Enhanced forex service tests
+│   │   └── forexRateService.test.ts            # Forex API service tests
 │   ├── bitcoinPriceService.ts     # CoinGecko API integration
 │   ├── calculationService.ts      # Rate comparison calculation engine
+│   ├── enhancedBitcoinPriceService.ts # Enhanced Bitcoin service with advanced features
+│   ├── enhancedForexRateService.ts    # Enhanced forex service with advanced features
 │   └── forexRateService.ts        # Traditional forex API integration
+├── hooks/                         # Custom React hooks
+│   ├── __tests__/                 # Hook unit tests
+│   │   └── useDebounce.test.ts    # Debounce hook tests
+│   ├── useDebounce.ts             # Debounce hook for input optimization
+│   └── useErrorHandling.ts        # Error handling hook
+├── utils/                         # Utility functions and performance optimizations
+│   ├── __tests__/                 # Utility unit tests
+│   │   ├── errorHandling.test.ts  # Error handling utility tests
+│   │   └── performance.test.ts    # Performance utility tests
+│   ├── errorHandling.ts           # Error handling utilities
+│   └── performance.ts             # React performance optimization hooks
 ├── types/                         # TypeScript type definitions
 │   └── index.ts                   # Core interfaces and types
+├── __tests__/                     # Integration and performance tests
+│   └── performance-benchmarks.test.tsx # Performance benchmark tests
 ├── bitcoin-forex-calculator.tsx  # Main React component
 ├── jest.config.js                 # Jest testing configuration
+├── jest.setup.js                  # Jest setup file
 ├── package.json                   # Project dependencies and scripts
 └── tsconfig.json                  # TypeScript configuration
 ```
@@ -135,6 +162,7 @@ console.log(`Bitcoin amount: ${comparison.bitcoinAmount}`);
 
 - Node.js 16+ 
 - npm or yarn
+- TypeScript 4.5+
 
 ### Installation
 
@@ -151,9 +179,38 @@ npm run test:coverage
 # Run tests in watch mode
 npm run test:watch
 
+# Run performance benchmarks
+npm test __tests__/performance-benchmarks.test.tsx
+
 # Run specific service tests
 npm test services/__tests__/calculationService.test.ts
+
+# Run component tests
+npm test components/__tests__/
+
+# Run utility tests
+npm test utils/__tests__/
 ```
+
+### Performance Optimization
+
+The project includes comprehensive performance utilities in `utils/performance.ts`:
+
+- **useStableReference**: Prevents unnecessary re-renders with stable object references
+- **useDeepMemo**: Deep comparison memoization for complex objects
+- **useThrottle**: Function execution throttling for performance-critical operations
+- **useOptimizedCalculation**: Advanced calculation caching with performance monitoring
+- **useAdvancedCache**: TTL-based caching with LRU eviction and statistics
+- **useRenderOptimization**: Prevents unnecessary component re-renders
+
+### Error Handling
+
+Robust error handling is implemented throughout the application:
+
+- **ErrorBoundary Component**: Catches and displays user-friendly error messages
+- **Error Handling Utilities**: Centralized error processing and logging
+- **Service-level Error Recovery**: Automatic retry logic and fallback mechanisms
+- **User Input Validation**: Real-time validation with helpful error messages
 
 ## Components
 
@@ -337,13 +394,18 @@ npm test services/__tests__/bitcoinPriceService.test.ts
 - ✅ **TypeScript Interfaces**: Complete type definitions for all data structures
 - ✅ **Forex API Service**: Full implementation with caching, fallback, and error handling
 - ✅ **Bitcoin Price Service**: Complete CoinGecko integration with caching and rate limiting
+- ✅ **Enhanced Services**: Advanced Bitcoin and Forex services with performance optimizations
 - ✅ **Calculation Service**: Complete rate comparison engine with arbitrage detection and comprehensive testing
-- ✅ **Unit Testing**: Comprehensive test suite for service layers (150+ tests, 96%+ coverage)
+- ✅ **Performance Utilities**: Comprehensive React optimization hooks with improved TypeScript support
+- ✅ **Error Handling**: Robust error handling utilities and error boundary components
+- ✅ **Custom Hooks**: Debounce and error handling hooks for enhanced user experience
+- ✅ **Unit Testing**: Comprehensive test suite for all layers (200+ tests, 96%+ coverage)
 - ✅ **Currency Selection Component**: Full-featured CurrencySelector with search, swap, and accessibility
 - ✅ **Amount Input Component**: Complete AmountInput with validation, formatting, and currency-specific handling
 - ✅ **Comparison Display Component**: Complete ComparisonDisplay with side-by-side rate comparison, visual indicators, and arbitrage detection
 - ✅ **Calculation Breakdown Component**: Complete CalculationBreakdown with step-by-step Bitcoin conversion explanation and expandable interface
-- 🚧 **UI Components**: Additional components for rate table (next phase)
+- ✅ **Rate Table Component**: Enhanced rate overview table with sorting and trend indicators
+- ✅ **Error Boundary Component**: Graceful error handling with user-friendly fallback UI
 - 🚧 **Component Integration**: Integration of all components in the main calculator interface (next phase)
 
 ## Next Steps

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Search, ArrowUpDown } from 'lucide-react';
 import { CurrencySelectorProps, CurrencyInfo } from '../types';
 
@@ -79,7 +79,7 @@ const CurrencyDropdown: React.FC<DropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden"
+      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-80 sm:max-h-96 overflow-hidden"
     >
       {/* Search Input */}
       <div className="p-3 border-b border-gray-200">
@@ -91,16 +91,16 @@ const CurrencyDropdown: React.FC<DropdownProps> = ({
             placeholder="Search currencies..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full pl-10 pr-4 py-3 sm:py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base sm:text-sm touch-manipulation"
             disabled={disabled}
           />
         </div>
       </div>
 
       {/* Currency List */}
-      <div className="max-h-60 overflow-y-auto">
+      <div className="max-h-60 sm:max-h-80 overflow-y-auto">
         {filteredCurrencies.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
+          <div className="p-4 text-center text-gray-500 text-sm">
             No currencies found matching "{searchTerm}"
           </div>
         ) : (
@@ -109,7 +109,7 @@ const CurrencyDropdown: React.FC<DropdownProps> = ({
               key={currency.code}
               onClick={() => onSelect(currency.code)}
               disabled={disabled}
-              className={`w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors ${
+              className={`w-full px-4 py-4 sm:py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors touch-manipulation ${
                 selectedCurrency === currency.code ? 'bg-blue-50 border-r-2 border-blue-500' : ''
               } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
@@ -131,7 +131,7 @@ const CurrencyDropdown: React.FC<DropdownProps> = ({
   );
 };
 
-const CurrencySelector: React.FC<CurrencySelectorProps> = ({
+const CurrencySelector: React.FC<CurrencySelectorProps> = React.memo(({
   currencies = CURRENCY_DATA,
   selectedSource,
   selectedTarget,
@@ -144,18 +144,18 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   const [sourceSearchTerm, setSourceSearchTerm] = useState('');
   const [targetSearchTerm, setTargetSearchTerm] = useState('');
 
-  // Get currency info by code
-  const getCurrencyInfo = (code: string): CurrencyInfo => {
+  // Memoized currency info getter to prevent recalculation
+  const getCurrencyInfo = useCallback((code: string): CurrencyInfo => {
     return currencies.find(c => c.code === code) || {
       code,
       name: code,
       symbol: code,
       flag: '💱'
     };
-  };
+  }, [currencies]);
 
-  // Filter currencies based on search term
-  const getFilteredCurrencies = (searchTerm: string): CurrencyInfo[] => {
+  // Memoized currency filter function
+  const getFilteredCurrencies = useCallback((searchTerm: string): CurrencyInfo[] => {
     if (!searchTerm.trim()) return currencies;
     
     const term = searchTerm.toLowerCase();
@@ -163,37 +163,36 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       currency.code.toLowerCase().includes(term) ||
       currency.name.toLowerCase().includes(term)
     );
-  };
+  }, [currencies]);
 
-  // Handle currency swap
-  const handleSwap = () => {
+  // Memoized event handlers to prevent recreation on every render
+  const handleSwap = useCallback(() => {
     if (disabled) return;
     
     const tempSource = selectedSource;
     onSourceChange(selectedTarget);
     onTargetChange(tempSource);
-  };
+  }, [disabled, selectedSource, selectedTarget, onSourceChange, onTargetChange]);
 
-  // Handle source currency selection
-  const handleSourceSelect = (currency: string) => {
+  const handleSourceSelect = useCallback((currency: string) => {
     onSourceChange(currency);
     setSourceDropdownOpen(false);
     setSourceSearchTerm('');
-  };
+  }, [onSourceChange]);
 
-  // Handle target currency selection
-  const handleTargetSelect = (currency: string) => {
+  const handleTargetSelect = useCallback((currency: string) => {
     onTargetChange(currency);
     setTargetDropdownOpen(false);
     setTargetSearchTerm('');
-  };
+  }, [onTargetChange]);
 
-  const sourceCurrency = getCurrencyInfo(selectedSource);
-  const targetCurrency = getCurrencyInfo(selectedTarget);
+  // Memoized currency info to prevent recalculation
+  const sourceCurrency = useMemo(() => getCurrencyInfo(selectedSource), [getCurrencyInfo, selectedSource]);
+  const targetCurrency = useMemo(() => getCurrencyInfo(selectedTarget), [getCurrencyInfo, selectedTarget]);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
         {/* Source Currency Selector */}
         <div className="flex-1 relative">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -202,7 +201,7 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
           <button
             onClick={() => !disabled && setSourceDropdownOpen(!sourceDropdownOpen)}
             disabled={disabled}
-            className={`w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+            className={`w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-h-[56px] touch-manipulation ${
               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             }`}
           >
@@ -231,28 +230,28 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
         </div>
 
         {/* Swap Button */}
-        <div className="flex flex-col items-center justify-end pb-2">
+        <div className="flex flex-row sm:flex-col items-center justify-center sm:justify-end sm:pb-2 order-2 sm:order-none">
           <button
             onClick={handleSwap}
             disabled={disabled}
-            className={`p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-colors ${
+            className={`p-3 sm:p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-colors min-h-[48px] min-w-[48px] touch-manipulation ${
               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-gray-400'
             }`}
             title="Swap currencies"
           >
-            <ArrowUpDown className="w-4 h-4 text-gray-600" />
+            <ArrowUpDown className="w-5 h-5 sm:w-4 sm:h-4 text-gray-600" />
           </button>
         </div>
 
         {/* Target Currency Selector */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative order-3 sm:order-none">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             To
           </label>
           <button
             onClick={() => !disabled && setTargetDropdownOpen(!targetDropdownOpen)}
             disabled={disabled}
-            className={`w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+            className={`w-full flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-h-[56px] touch-manipulation ${
               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             }`}
           >
@@ -282,6 +281,8 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       </div>
     </div>
   );
-};
+});
+
+CurrencySelector.displayName = 'CurrencySelector';
 
 export default CurrencySelector;
