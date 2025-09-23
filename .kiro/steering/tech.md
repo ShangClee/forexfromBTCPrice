@@ -2,7 +2,7 @@
 
 ## Frontend Framework
 - **React 18+** with functional components and hooks
-- **TypeScript** for type safety and better developer experience
+- **TypeScript** with ES2015+ target for type safety, better developer experience, and modern JavaScript features
 - **JSX/TSX** for component templates
 
 ## Styling & UI
@@ -17,7 +17,7 @@
 ## API Integration
 - **Fetch API** for HTTP requests
 - **CoinGecko API** for Bitcoin price data across multiple currencies
-- **ExchangeRate-API** (primary) and **Fixer.io** (fallback) for traditional forex rates
+- **ExchangeRate-API** (primary) and **open.er-api.com** (fallback) for traditional forex rates
 - Client-side caching strategies (30-second cache for Bitcoin, 5-minute for forex)
 
 ## Data Processing

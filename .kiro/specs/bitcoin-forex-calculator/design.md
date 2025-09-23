@@ -4,7 +4,7 @@
 
 The Bitcoin Forex Calculator is a React-based web application that provides real-time comparison between traditional forex rates and Bitcoin-based exchange rates. The application builds upon the existing implementation by adding traditional forex rate integration, comparison features, and enhanced user interaction capabilities.
 
-The system fetches Bitcoin prices from CoinGecko API and traditional forex rates from a free forex API (ExchangeRate-API or Fixer.io), then calculates and displays both rates side-by-side with percentage differences and arbitrage indicators.
+The system fetches Bitcoin prices from CoinGecko API and traditional forex rates from a free forex API (ExchangeRate-API or open.er-api.com), then calculates and displays both rates side-by-side with percentage differences and arbitrage indicators.
 
 ## Architecture
 
@@ -209,7 +209,7 @@ interface CurrencyInfo {
 
 #### Traditional Forex API Integration
 - **Primary**: ExchangeRate-API (`https://api.exchangerate-api.com/v4/latest/{base}`)
-- **Fallback**: Fixer.io API for redundancy
+- **Fallback**: open.er-api.com API for redundancy
 - **Rate Limiting**: 1000 calls/month for free tier
 - **Error Handling**: Automatic fallback to secondary API
 - **Caching**: 5-minute cache for forex rates
